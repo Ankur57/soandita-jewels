@@ -1,10 +1,12 @@
 const express = require("express");
 const { createOrder,getMyOrders,getOrderById,getDailySales,getMonthlySales,getYearlySales,getSalesDashboard,
-    getAllOrders,getAdminDashboard,updateOrderStatus,requestReturn,approveReturn,rejectReturn,processRefundAdmin
+    getAllOrders,getAdminDashboard,updateOrderStatus,requestReturn,approveReturn,rejectReturn,processRefundAdmin,
+    getAllReturnRequests
  } = require("../controllers/orderController");
 const { protect,adminOnly } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+router.get("/admin/returns",protect,adminOnly,getAllReturnRequests);
 //Analysis Routes
 router.get("/admin/sales/daily", protect, adminOnly, getDailySales);
 router.get("/admin/sales/monthly", protect, adminOnly, getMonthlySales);

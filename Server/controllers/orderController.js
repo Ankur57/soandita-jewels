@@ -3,11 +3,35 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Address = require("../models/Address");
 const { processRefund } = require("../services/refundService");
+const { sendEmail } = require("../services/emailService");
 
 
 // Generate order number
 const generateOrderNumber = () => {
   return "SJ-" + Date.now();
+};
+
+exports.getAllReturnRequests = async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    const filter = {
+      "returnRequest.status": { $ne: "none" },
+    };
+
+    if (status) {
+      filter["returnRequest.status"] = status;
+    }
+
+    const returns = await Order.find(filter)
+      .populate("userId", "name email")
+      .sort({ "returnRequest.requestedAt": -1 });
+
+    res.status(200).json(returns);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 exports.getDailySales = async (req, res) => {
@@ -219,6 +243,12 @@ exports.processRefundAdmin = async (req, res) => {
     order.paymentStatus = "refunded";
 
     await order.save();
+    await sendEmail(
+    order.userId.email,
+    "Refund Processed",
+    `<p>Your refund for order ${order.orderNumber} has been processed.</p>`
+  );
+
 
     res.status(200).json({
       message: "Refund processed",
@@ -283,6 +313,12 @@ exports.requestReturn = async (req, res) => {
     order.orderStatus = "return_requested";
 
     await order.save();
+    await sendEmail(
+      req.user.email,
+      "Return Request Submitted",
+      `<p>Your return request for order ${order.orderNumber} is submitted.</p>`
+    );
+
 
     res.status(200).json({ message: "Return request submitted" });
 
@@ -303,6 +339,12 @@ exports.approveReturn = async (req, res) => {
     order.orderStatus = "return_approved";
 
     await order.save();
+    await sendEmail(
+    order.userId.email,
+    "Return Approved",
+    `<p>Your return request for order ${order.orderNumber} has been approved.</p>`
+  );
+
 
     res.status(200).json({ message: "Return approved" });
 
@@ -396,6 +438,11 @@ exports.createOrder = async (req, res) => {
     cart.items = [];
     cart.totalAmount = 0;
     await cart.save();
+    await sendEmail(
+  req.user.email,
+    "Order Placed Successfully",
+    `<h3>Your order ${order.orderNumber} has been placed.</h3>`
+  );
 
     res.status(201).json(order);
 
