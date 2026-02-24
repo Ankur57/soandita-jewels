@@ -11,6 +11,9 @@ function Navbar() {
         <div className="space-x-6">
           <Link to="/shop">Shop</Link>
         </div>
+        <div className="space-x-6">
+          <Link to="/cart">Cart</Link>
+        </div>
       </div>
     </nav>
   );
