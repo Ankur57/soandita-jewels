@@ -3,35 +3,36 @@ import { useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
-function Login() {
+function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    mobileNumber: "",
+  });
+
   const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await axios.post("/auth/login", {
-        email,
-        password,
-      });
+      const res = await axios.post("/auth/register", form);
 
       login(res.data.user, res.data.token);
 
-      if (res.data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/");
-      }
-
+      navigate("/");
     } catch (err) {
       setError(
-        err.response?.data?.message || "Login failed"
+        err.response?.data?.message || "Registration failed"
       );
     }
   };
@@ -39,22 +40,40 @@ function Login() {
   return (
     <div className="max-w-md mx-auto mt-16">
       <h1 className="text-3xl font-bold mb-6 text-center">
-        Login
+        Register
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
-          type="email"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
+          name="name"
+          placeholder="Full Name"
+          onChange={handleChange}
           required
           className="w-full border p-3 rounded"
         />
 
         <input
+          name="email"
+          type="email"
+          placeholder="Email"
+          onChange={handleChange}
+          required
+          className="w-full border p-3 rounded"
+        />
+
+        <input
+          name="mobileNumber"
+          placeholder="Mobile Number"
+          onChange={handleChange}
+          required
+          className="w-full border p-3 rounded"
+        />
+
+        <input
+          name="password"
           type="password"
           placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={handleChange}
           required
           className="w-full border p-3 rounded"
         />
@@ -64,11 +83,11 @@ function Login() {
         )}
 
         <button className="w-full bg-black text-white py-3 rounded">
-          Login
+          Register
         </button>
       </form>
     </div>
   );
 }
 
-export default Login;
+export default Register;

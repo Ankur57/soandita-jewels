@@ -18,6 +18,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
+
 
 app.get("/", (req, res) => {
   res.send("API Running");
@@ -30,6 +32,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+console.log("Inside Server.js for /api/orders ");
 app.use("/api/addresses", addressRoutes);
 app.use("/api/payment", paymentRoutes);
 

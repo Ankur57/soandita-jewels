@@ -2,15 +2,58 @@ const Product = require("../models/Product");
 
 
 // Add Product (Admin)
+const slugify = require("slugify");
+
 exports.addProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
+    const {
+      name,
+      description,
+      price,
+      categoryId,
+      stock
+    } = req.body;
+
+    if (!categoryId) {
+      return res.status(400).json({
+        message: "Category is required",
+      });
+    }
+
+    // Generate slug
+    const slug = slugify(name, {
+      lower: true,
+      strict: true,
+    });
+
+    // Generate SKU
+    const sku = `SJ-${Date.now()}`;
+
+    let imagePaths = [];
+
+    if (req.files && req.files.length > 0) {
+      imagePaths = req.files.map(
+        (file) => `/uploads/${file.filename}`
+      );
+    }
+
+    const product = await Product.create({
+      name,
+      description,
+      price,
+      categoryId,
+      stock,
+      slug,
+      sku,
+      images: imagePaths,
+    });
+
     res.status(201).json(product);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Get All Products (Public)
 exports.getProducts = async (req, res) => {

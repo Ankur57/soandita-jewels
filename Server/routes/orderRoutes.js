@@ -1,4 +1,5 @@
 const express = require("express");
+const upload = require("../middleware/uploadMiddleware");
 const { createOrder,getMyOrders,getOrderById,getDailySales,getMonthlySales,getYearlySales,getSalesDashboard,
     getAllOrders,getAdminDashboard,updateOrderStatus,requestReturn,approveReturn,rejectReturn,processRefundAdmin,
     getAllReturnRequests
@@ -16,7 +17,8 @@ router.get("/admin/sales/dashboard", protect, adminOnly, getSalesDashboard);
 router.get("/admin/orders", protect, adminOnly, getAllOrders);
 router.get("/admin/dashboard", protect, adminOnly, getAdminDashboard);
 router.put("/admin/orders/:orderId/status", protect, adminOnly, updateOrderStatus);
-router.post("/:orderId/request-return",protect,requestReturn);
+router.post("/:id/return",protect,upload.single("image"),requestReturn);
+
 router.put("/admin/orders/:orderId/approve-return",protect,adminOnly,approveReturn);
 router.put("/admin/orders/:orderId/reject-return",protect,adminOnly,rejectReturn);
 router.put("/admin/orders/:orderId/process-refund",protect,adminOnly,processRefundAdmin);

@@ -262,50 +262,35 @@ exports.processRefundAdmin = async (req, res) => {
 
 exports.requestReturn = async (req, res) => {
   try {
-    const { reason, images } = req.body;
+    const { reason } = req.body;
 
     const order = await Order.findOne({
-      _id: req.params.orderId,
+      _id: req.params.id,
       userId: req.user._id,
     });
 
-    if (!order) {
+    if (!order)
       return res.status(404).json({ message: "Order not found" });
-    }
 
-    if (order.orderStatus !== "delivered") {
+    if (order.orderStatus !== "delivered")
       return res.status(400).json({
         message: "Return allowed only for delivered orders",
       });
-    }
 
     const allowedReasons = ["damaged", "defective", "wrong_item"];
-    if (!allowedReasons.includes(reason)) {
+    if (!allowedReasons.includes(reason))
       return res.status(400).json({
         message: "Invalid return reason",
       });
-    }
 
-    if (!images || images.length === 0) {
+    if (!req.file)
       return res.status(400).json({
-        message: "Images required for damage claim",
+        message: "Image is required",
       });
-    }
-
-    // Check 3-day rule
-    const deliveredDate = order.updatedAt;
-    const now = new Date();
-    const diffDays = (now - deliveredDate) / (1000 * 60 * 60 * 24);
-
-    if (diffDays > 3) {
-      return res.status(400).json({
-        message: "Return window expired (3 days only)",
-      });
-    }
 
     order.returnRequest = {
       reason,
-      images,
+      images: [`/uploads/${req.file.filename}`],
       requestedAt: new Date(),
       status: "requested",
     };
@@ -313,19 +298,14 @@ exports.requestReturn = async (req, res) => {
     order.orderStatus = "return_requested";
 
     await order.save();
-    await sendEmail(
-      req.user.email,
-      "Return Request Submitted",
-      `<p>Your return request for order ${order.orderNumber} is submitted.</p>`
-    );
 
-
-    res.status(200).json({ message: "Return request submitted" });
+    res.json({ message: "Return request submitted" });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.approveReturn = async (req, res) => {
   try {
