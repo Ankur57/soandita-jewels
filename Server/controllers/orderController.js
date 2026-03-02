@@ -244,10 +244,10 @@ exports.processRefundAdmin = async (req, res) => {
 
     await order.save();
     await sendEmail(
-    order.userId.email,
-    "Refund Processed",
-    `<p>Your refund for order ${order.orderNumber} has been processed.</p>`
-  );
+      order.userId.email,
+      "Refund Processed",
+      `<p>Your refund for order ${order.orderNumber} has been processed.</p>`
+    );
 
 
     res.status(200).json({
@@ -320,10 +320,10 @@ exports.approveReturn = async (req, res) => {
 
     await order.save();
     await sendEmail(
-    order.userId.email,
-    "Return Approved",
-    `<p>Your return request for order ${order.orderNumber} has been approved.</p>`
-  );
+      order.userId.email,
+      "Return Approved",
+      `<p>Your return request for order ${order.orderNumber} has been approved.</p>`
+    );
 
 
     res.status(200).json({ message: "Return approved" });
@@ -363,7 +363,7 @@ exports.createOrder = async (req, res) => {
     const { addressId } = req.body;
 
     const cart = await Cart.findOne({ userId: req.user._id })
-    .populate("items.productId");
+      .populate("items.productId");
 
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
@@ -377,16 +377,16 @@ exports.createOrder = async (req, res) => {
 
     // Check stock & reduce
     for (let item of cart.items) {
-    const product = item.productId; // already populated
+      const product = item.productId; // already populated
 
-    if (!product || product.stock < item.quantity) {
+      if (!product || product.stock < item.quantity) {
         return res.status(400).json({
-        message: `Insufficient stock for ${product.name}`,
+          message: `Insufficient stock for ${product.name}`,
         });
-    }
+      }
 
-    product.stock -= item.quantity;
-    await product.save();
+      product.stock -= item.quantity;
+      await product.save();
     }
 
 
@@ -399,7 +399,7 @@ exports.createOrder = async (req, res) => {
         name: item.productId.name,
         quantity: item.quantity,
         priceAtTime: item.priceAtTime,
-        })),
+      })),
 
       subtotal: cart.totalAmount,
       shippingCharges: 0,
@@ -418,11 +418,9 @@ exports.createOrder = async (req, res) => {
     cart.items = [];
     cart.totalAmount = 0;
     await cart.save();
-    await sendEmail(
-  req.user.email,
-    "Order Placed Successfully",
-    `<h3>Your order ${order.orderNumber} has been placed.</h3>`
-  );
+
+    // Note: Professional confirmation email is sent after payment verification
+    // in paymentController.js → verifyPayment()
 
     res.status(201).json(order);
 

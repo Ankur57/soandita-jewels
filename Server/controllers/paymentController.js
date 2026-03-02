@@ -2,7 +2,10 @@ const crypto = require("crypto");
 const razorpay = require("../config/razorpay");
 const Order = require("../models/Order");
 const Payment = require("../models/Payment");
+const User = require("../models/User");
 const { createShipment } = require("../controllers/shipmentController");
+const { sendEmail } = require("../services/emailService");
+const { orderConfirmationEmail } = require("../services/emailTemplates");
 
 
 
@@ -12,8 +15,8 @@ exports.createPaymentOrder = async (req, res) => {
     const { orderId } = req.body;
 
     const order = await Order.findOne({
-        _id: orderId,
-        userId: req.user._id,
+      _id: orderId,
+      userId: req.user._id,
     });
 
     if (!order) {
@@ -110,6 +113,18 @@ exports.verifyPayment = async (req, res) => {
     order.paymentStatus = "success";
     order.orderStatus = "paid";
     await order.save();
+
+    // 📧 Send order confirmation email
+    try {
+      const user = await User.findById(req.user._id);
+      if (user && user.email) {
+        const emailData = orderConfirmationEmail(user.name, order);
+        await sendEmail(user.email, emailData.subject, emailData.html);
+      }
+    } catch (emailError) {
+      console.error("Order confirmation email failed:", emailError.message);
+      // Do NOT fail payment if email fails
+    }
 
     // 🚚 Create Shipment Automatically
     try {

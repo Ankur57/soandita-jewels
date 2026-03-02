@@ -407,6 +407,14 @@ function Navbar() {
                     <hr className="my-1 border-gray-100" />
                     {user.role === "user" && (
                       <Link
+                        to="/profile"
+                        className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-black"
+                      >
+                        Profile
+                      </Link>
+                    )}
+                    {user.role === "user" && (
+                      <Link
                         to="/orders"
                         className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-black"
                       >
