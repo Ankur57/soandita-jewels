@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "../../api/axios";
 
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
+
 function AdminProductDetails() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
@@ -29,12 +31,12 @@ function AdminProductDetails() {
         {product.images.map((img, index) => (
           <a
             key={index}
-            href={`http://localhost:5000${img}`}
+            href={`${IMAGE_BASE_URL}${img}`}
             target="_blank"
             rel="noopener noreferrer"
           >
             <img
-              src={`http://localhost:5000${img}`}
+              src={`${IMAGE_BASE_URL}${img}`}
               alt=""
               className="w-full h-48 object-cover rounded"
             />

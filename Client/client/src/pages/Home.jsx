@@ -11,7 +11,7 @@ import seasonDemiFine from "../assets/season_demi_fine.png";
 import seasonChokers from "../assets/season_chokers.png";
 import seasonTemple from "../assets/season_temple.png";
 
-const IMAGE_BASE_URL = "http://localhost:5000";
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 
 function Home() {
   const { user } = useAuth();

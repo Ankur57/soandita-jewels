@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "../api/axios";
 
-const IMAGE_BASE_URL = "http://localhost:5000";
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 
 function Shop() {
   const [products, setProducts] = useState([]);
@@ -331,8 +331,8 @@ function Shop() {
           ) : (
             <>
               <div className={`grid gap-6 grid-cols-1 ${gridCols === 2 ? "sm:grid-cols-2" :
-                  gridCols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" :
-                    "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                gridCols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" :
+                  "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 }`}>
                 {filteredProducts.map((product) => (
                   <Link
@@ -412,8 +412,8 @@ function Shop() {
                       key={i + 1}
                       onClick={() => setPage(i + 1)}
                       className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${page === i + 1
-                          ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
-                          : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
+                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                         }`}
                     >
                       {i + 1}

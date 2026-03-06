@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 
-const IMAGE_BASE_URL = "http://localhost:5000";
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 
 function Checkout() {
   const navigate = useNavigate();
@@ -188,8 +188,8 @@ function Checkout() {
           <div key={step.num} className="flex items-center">
             <div className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${step.done
-                  ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
-                  : "bg-gray-200 text-gray-500"
+                ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
+                : "bg-gray-200 text-gray-500"
                 }`}>
                 {step.done ? (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" /></svg>
@@ -235,8 +235,8 @@ function Checkout() {
                     key={addr._id}
                     onClick={() => { setSelectedAddress(addr._id); setError(""); }}
                     className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${selectedAddress === addr._id
-                        ? "border-yellow-500 bg-yellow-50/50 ring-1 ring-yellow-300/30 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
+                      ? "border-yellow-500 bg-yellow-50/50 ring-1 ring-yellow-300/30 shadow-sm"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
                       }`}
                   >
                     <div className="flex items-center gap-2 mb-2">
@@ -374,8 +374,8 @@ function Checkout() {
               onClick={handleCheckout}
               disabled={placing || !selectedAddress}
               className={`w-full py-3.5 rounded-xl text-sm font-medium uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${selectedAddress
-                  ? "bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 hover:from-yellow-800 hover:via-yellow-700 hover:to-yellow-800 text-white shadow-yellow-700/20 hover:shadow-yellow-800/30"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
+                ? "bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 hover:from-yellow-800 hover:via-yellow-700 hover:to-yellow-800 text-white shadow-yellow-700/20 hover:shadow-yellow-800/30"
+                : "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
                 }`}
             >
               {placing ? (

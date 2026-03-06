@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "../api/axios";
 
-const IMAGE_BASE_URL = "http://localhost:5000";
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 
 function Product() {
   const { id } = useParams();
@@ -146,8 +146,8 @@ function Product() {
                   key={i}
                   onClick={() => setSelectedImage(i)}
                   className={`w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 flex-shrink-0 ${selectedImage === i
-                      ? "border-yellow-600 shadow-lg shadow-yellow-700/20 ring-1 ring-yellow-400/30"
-                      : "border-gray-200 hover:border-gray-300"
+                    ? "border-yellow-600 shadow-lg shadow-yellow-700/20 ring-1 ring-yellow-400/30"
+                    : "border-gray-200 hover:border-gray-300"
                     }`}
                 >
                   <img
@@ -250,8 +250,8 @@ function Product() {
             onClick={handleAddToCart}
             disabled={adding || !inStock}
             className={`w-full py-4 rounded-xl text-sm font-medium uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${inStock
-                ? "bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 hover:from-yellow-800 hover:via-yellow-700 hover:to-yellow-800 text-white shadow-yellow-700/20 hover:shadow-yellow-800/30"
-                : "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
+              ? "bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 hover:from-yellow-800 hover:via-yellow-700 hover:to-yellow-800 text-white shadow-yellow-700/20 hover:shadow-yellow-800/30"
+              : "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
               }`}
           >
             {adding ? (
@@ -269,8 +269,8 @@ function Product() {
           {/* Success / Error Message */}
           {message && (
             <div className={`flex items-center gap-2 px-4 py-3 rounded-xl mt-4 ${messageType === "success"
-                ? "bg-green-50 border border-green-100"
-                : "bg-red-50 border border-red-100"
+              ? "bg-green-50 border border-green-100"
+              : "bg-red-50 border border-red-100"
               }`}>
               {messageType === "success" ? (
                 <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

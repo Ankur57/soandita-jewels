@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "../api/axios";
 
-const IMAGE_BASE_URL = "http://localhost:5000";
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 
 const statusConfig = {
   pending: { label: "Pending", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200", icon: "⏳" },
@@ -133,8 +133,8 @@ function OrderDetails() {
                 <div key={step} className="flex items-center flex-1 last:flex-none">
                   <div className="flex flex-col items-center">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm transition-all ${isDone
-                        ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
-                        : "bg-gray-100 text-gray-400"
+                      ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
+                      : "bg-gray-100 text-gray-400"
                       } ${isCurrent ? "ring-4 ring-yellow-200" : ""}`}>
                       {isDone ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" /></svg>
@@ -234,10 +234,10 @@ function OrderDetails() {
           {/* Return Status */}
           {order.returnRequest && order.returnRequest.status !== "none" && (
             <div className={`rounded-2xl shadow-lg shadow-gray-100/50 border p-6 ${order.returnRequest.status === "approved" || order.returnRequest.status === "refunded"
-                ? "bg-green-50 border-green-200"
-                : order.returnRequest.status === "rejected"
-                  ? "bg-red-50 border-red-200"
-                  : "bg-yellow-50 border-yellow-200"
+              ? "bg-green-50 border-green-200"
+              : order.returnRequest.status === "rejected"
+                ? "bg-red-50 border-red-200"
+                : "bg-yellow-50 border-yellow-200"
               }`}>
               <h3 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
@@ -286,8 +286,8 @@ function OrderDetails() {
 
             {/* Payment status */}
             <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${order.paymentStatus === "success" ? "bg-green-50 border border-green-100" :
-                order.paymentStatus === "refunded" ? "bg-purple-50 border border-purple-100" :
-                  "bg-orange-50 border border-orange-100"
+              order.paymentStatus === "refunded" ? "bg-purple-50 border border-purple-100" :
+                "bg-orange-50 border border-orange-100"
               }`}>
               {order.paymentStatus === "success" ? (
                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -295,8 +295,8 @@ function OrderDetails() {
                 <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               )}
               <span className={`font-medium ${order.paymentStatus === "success" ? "text-green-700" :
-                  order.paymentStatus === "refunded" ? "text-purple-700" :
-                    "text-orange-700"
+                order.paymentStatus === "refunded" ? "text-purple-700" :
+                  "text-orange-700"
                 }`}>
                 Payment {order.paymentStatus === "success" ? "Completed" : order.paymentStatus === "refunded" ? "Refunded" : "Pending"}
               </span>

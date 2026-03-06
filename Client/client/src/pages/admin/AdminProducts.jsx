@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "../../api/axios";
 import { Link } from "react-router-dom";
 
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
+
 function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,26 +21,26 @@ function AdminProducts() {
       setProducts(res.data.products);
       setTotalPages(res.data.totalPages);
       setLoading(false);
-      
+
 
     } catch (error) {
       console.error(error);
     }
   };
-  
+
 
   const toggleStatus = async (id) => {
-  const res = await axios.put(`/products/update/${id}`, {
-    isActive: !products.find(p => p._id === id).isActive
-  });
+    const res = await axios.put(`/products/update/${id}`, {
+      isActive: !products.find(p => p._id === id).isActive
+    });
 
-  setProducts(products.map(p =>
-    p._id === id ? res.data : p
-  ));
-};
+    setProducts(products.map(p =>
+      p._id === id ? res.data : p
+    ));
+  };
 
   useEffect(() => {
-    
+
     fetchProducts();
   }, [page, search]);
 
@@ -93,7 +95,7 @@ function AdminProducts() {
           </thead>
 
           <tbody>
-            
+
             {products.map((product) => (
               <tr key={product._id} className="border-t">
 
@@ -102,15 +104,15 @@ function AdminProducts() {
                 <td className="p-4">
                   {product.images?.length > 0 && (
                     <a
-                        href={`http://localhost:5000${product.images[0]}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >
-                        <img
-                            src={`http://localhost:5000${product.images[0]}`}
-                            alt={product.name}
-                            className="w-16 h-16 object-cover rounded cursor-pointer"
-                        />
+                      href={`${IMAGE_BASE_URL}${product.images[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={`${IMAGE_BASE_URL}${product.images[0]}`}
+                        alt={product.name}
+                        className="w-16 h-16 object-cover rounded cursor-pointer"
+                      />
                     </a>
                   )}
                 </td>

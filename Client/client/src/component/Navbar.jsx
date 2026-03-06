@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 import logo from "../assets/soandita-logo.png";
 
-const IMAGE_BASE_URL = "http://localhost:5000";
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 
 function Navbar() {
   const { user, logout } = useAuth();
