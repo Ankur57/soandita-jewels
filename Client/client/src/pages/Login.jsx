@@ -149,7 +149,7 @@ function Login() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label htmlFor="login-email" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
+                <label htmlFor="login-email" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Email Address <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +164,7 @@ function Login() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="login-password" className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Password</label>
+                  <label htmlFor="login-password" className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Password <span className="text-red-500">*</span></label>
                   <Link to="/forgot-password" className="text-xs text-yellow-700 hover:text-yellow-800 font-medium transition-colors">Forgot Password?</Link>
                 </div>
                 <div className="relative">

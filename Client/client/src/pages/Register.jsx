@@ -206,7 +206,7 @@ function Register() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Name */}
                 <div>
-                  <label htmlFor="register-name" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Full Name</label>
+                  <label htmlFor="register-name" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Full Name <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ function Register() {
 
                 {/* Email */}
                 <div>
-                  <label htmlFor="register-email" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
+                  <label htmlFor="register-email" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Email Address <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,7 +234,7 @@ function Register() {
 
                 {/* Mobile */}
                 <div>
-                  <label htmlFor="register-mobile" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Mobile Number</label>
+                  <label htmlFor="register-mobile" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Mobile Number <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +248,7 @@ function Register() {
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="register-password" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Password</label>
+                  <label htmlFor="register-password" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Password <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +283,7 @@ function Register() {
               <form onSubmit={handleVerifyOtp} className="space-y-5">
                 {/* OTP input */}
                 <div>
-                  <label htmlFor="register-otp" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Verification Code</label>
+                  <label htmlFor="register-otp" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Verification Code <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
