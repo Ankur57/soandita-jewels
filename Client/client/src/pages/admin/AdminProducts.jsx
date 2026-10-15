@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "../../api/axios";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { getImageUrl } from "../../utils/imageHelper";
 
@@ -50,12 +50,26 @@ const EyeIcon = () => (
 
 
 function AdminProducts() {
+  const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState("");
+  const dismissTimer = useRef(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [deletingId, setDeletingId] = useState(null);
+
+  // Show success banner when navigated here with a message
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the state from history so refresh doesn't re-show it
+      window.history.replaceState({}, document.title);
+      dismissTimer.current = setTimeout(() => setSuccessMessage(""), 4000);
+    }
+    return () => clearTimeout(dismissTimer.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProducts = async () => {
     try {
@@ -138,6 +152,29 @@ function AdminProducts() {
             Add Product
           </Link>
         </div>
+
+        {/* ─── Success Banner ─── */}
+        {successMessage && (
+          <div className="mb-6 px-5 py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium text-sm flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span>{successMessage}</span>
+            </div>
+            <button
+              onClick={() => setSuccessMessage("")}
+              className="text-emerald-400 hover:text-emerald-700 p-1 rounded-lg hover:bg-emerald-100 transition-colors"
+              aria-label="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* ─── Search Bar ─── */}
         <div className="relative mb-6">
@@ -246,10 +283,10 @@ function AdminProducts() {
                     <p className="text-xs text-gray-400 lg:hidden uppercase font-semibold mb-0.5">Stock</p>
                     <span
                       className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold ${product.stock > 10
-                          ? "bg-emerald-50 text-emerald-700"
-                          : product.stock > 0
-                            ? "bg-amber-50 text-amber-700"
-                            : "bg-red-50 text-red-600"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : product.stock > 0
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-red-50 text-red-600"
                         }`}
                     >
                       {product.stock > 0 ? product.stock : "Out"}
@@ -301,8 +338,8 @@ function AdminProducts() {
                       onClick={() => handleDelete(product._id)}
                       disabled={deletingId === product._id}
                       className={`p-2 rounded-lg transition-all duration-200 ${deletingId === product._id
-                          ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                          : "bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                        ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                        : "bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600"
                         }`}
                       title="Delete"
                     >
@@ -322,8 +359,8 @@ function AdminProducts() {
               disabled={page === 1}
               onClick={() => setPage((prev) => prev - 1)}
               className={`p-2 rounded-xl border transition-all duration-200 ${page === 1
-                  ? "border-gray-100 text-gray-300 cursor-not-allowed"
-                  : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
+                ? "border-gray-100 text-gray-300 cursor-not-allowed"
+                : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
                 }`}
             >
               <ChevronLeftIcon />
@@ -337,8 +374,8 @@ function AdminProducts() {
                   key={p}
                   onClick={() => setPage(p)}
                   className={`w-10 h-10 rounded-xl text-sm font-semibold transition-all duration-200 ${page === p
-                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-200"
-                      : "bg-white border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-200"
+                    : "bg-white border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
                     }`}
                 >
                   {p}
@@ -350,8 +387,8 @@ function AdminProducts() {
               disabled={page === totalPages}
               onClick={() => setPage((prev) => prev + 1)}
               className={`p-2 rounded-xl border transition-all duration-200 ${page === totalPages
-                  ? "border-gray-100 text-gray-300 cursor-not-allowed"
-                  : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
+                ? "border-gray-100 text-gray-300 cursor-not-allowed"
+                : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
                 }`}
             >
               <ChevronRightIcon />

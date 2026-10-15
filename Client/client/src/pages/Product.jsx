@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "../api/axios";
+import { useCart } from "../context/CartContext";
 
 import { getImageUrl } from "../utils/imageHelper";
 
 function Product() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { refreshCartCount } = useCart();
 
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -52,6 +54,7 @@ function Product() {
 
       setMessage("Added to cart successfully!");
       setMessageType("success");
+      refreshCartCount();
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       if (err.response?.status === 401) {

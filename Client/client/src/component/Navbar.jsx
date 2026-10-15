@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 import logo from "../assets/soandita-logo.png";
@@ -9,6 +10,7 @@ import { getImageUrl } from "../utils/imageHelper";
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const { cartCount } = useCart();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -374,6 +376,29 @@ function Navbar() {
                       d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                     />
                   </svg>
+                  {cartCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "2px",
+                        right: "2px",
+                        minWidth: "16px",
+                        height: "16px",
+                        backgroundColor: "#b45309",
+                        color: "#fff",
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        lineHeight: "16px",
+                        textAlign: "center",
+                        borderRadius: "9999px",
+                        padding: "0 3px",
+                        pointerEvents: "none",
+                        animation: "cartBadgePop 0.25s ease",
+                      }}
+                    >
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
                 </Link>
               )}
 

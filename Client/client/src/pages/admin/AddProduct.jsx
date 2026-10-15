@@ -66,10 +66,11 @@ function AddProduct() {
         },
       });
 
-      navigate("/admin/products");
+      navigate("/admin/products", {
+        state: { message: "Product added successfully!" },
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to add product");
-    } finally {
       setSaving(false);
     }
   };

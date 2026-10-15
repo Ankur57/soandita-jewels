@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
 function Profile() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user: authUser, logout } = useAuth();
 
-    // Tabs
-    const [activeTab, setActiveTab] = useState("profile");
+    // Tabs — default to 'profile', but honour tab passed via navigation state
+    const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
 
     // Profile state
     const [profile, setProfile] = useState(null);

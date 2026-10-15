@@ -220,13 +220,26 @@ function Checkout() {
                 <h2 className="text-lg font-serif italic text-gray-800">Delivery Address</h2>
                 <p className="text-gray-400 text-xs mt-0.5">Select where you'd like your order delivered</p>
               </div>
-              {!showNewAddress && (
-                <button onClick={() => setShowNewAddress(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                  New Address
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/profile"
+                  state={{ tab: "addresses" }}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-700 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Manage
+                </Link>
+                {!showNewAddress && (
+                  <button onClick={() => setShowNewAddress(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    New Address
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Address cards */}
@@ -239,32 +252,43 @@ function Checkout() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {addresses.map((addr) => (
-                  <button
-                    key={addr._id}
-                    onClick={() => { setSelectedAddress(addr._id); setError(""); }}
-                    className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${selectedAddress === addr._id
-                      ? "border-yellow-500 bg-yellow-50/50 ring-1 ring-yellow-300/30 shadow-sm"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
-                      }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedAddress === addr._id ? "border-yellow-600" : "border-gray-300"
-                        }`}>
-                        {selectedAddress === addr._id && (
-                          <div className="w-2 h-2 rounded-full bg-yellow-600" />
+                  <div key={addr._id} className="relative group">
+                    <button
+                      onClick={() => { setSelectedAddress(addr._id); setError(""); }}
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${selectedAddress === addr._id
+                        ? "border-yellow-500 bg-yellow-50/50 ring-1 ring-yellow-300/30 shadow-sm"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                        }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedAddress === addr._id ? "border-yellow-600" : "border-gray-300"
+                          }`}>
+                          {selectedAddress === addr._id && (
+                            <div className="w-2 h-2 rounded-full bg-yellow-600" />
+                          )}
+                        </div>
+                        <span className="text-gray-800 font-medium text-sm">{addr.fullName}</span>
+                        {addr.isDefault && (
+                          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded font-semibold">Default</span>
                         )}
                       </div>
-                      <span className="text-gray-800 font-medium text-sm">{addr.fullName}</span>
-                      {addr.isDefault && (
-                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded font-semibold">Default</span>
-                      )}
-                    </div>
-                    <p className="text-gray-500 text-xs leading-relaxed ml-6">
-                      {addr.addressLine1}{addr.addressLine2 && `, ${addr.addressLine2}`}<br />
-                      {addr.city}, {addr.state} — {addr.postalCode}<br />
-                      📞 {addr.mobileNumber}
-                    </p>
-                  </button>
+                      <p className="text-gray-500 text-xs leading-relaxed ml-6">
+                        {addr.addressLine1}{addr.addressLine2 && `, ${addr.addressLine2}`}<br />
+                        {addr.city}, {addr.state} — {addr.postalCode}<br />
+                        📞 {addr.mobileNumber}
+                      </p>
+                    </button>
+                    {/* Edit shortcut */}
+                    <button
+                      onClick={() => navigate("/profile", { state: { tab: "addresses" } })}
+                      title="Edit or delete this address"
+                      className="absolute top-2 right-2 p-1.5 rounded-lg text-gray-300 hover:text-yellow-700 hover:bg-yellow-50 opacity-0 group-hover:opacity-100 transition-all duration-150"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -273,20 +297,51 @@ function Checkout() {
             {showNewAddress && (
               <div className="mt-4 p-5 bg-gray-50 rounded-xl border border-gray-100">
                 <h3 className="text-sm font-medium text-gray-700 mb-4">Add New Address</h3>
+
+                {/* ── Delivery Accuracy Advisory Banner ── */}
+                <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 flex gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Enter your address carefully for accurate delivery</p>
+                    <ul className="text-xs text-amber-700 space-y-1">
+                      <li className="flex items-start gap-1.5">
+                        <span className="mt-0.5 flex-shrink-0 w-1 h-1 rounded-full bg-amber-500 inline-block" />
+                        <span><span className="font-medium">Complete Details:</span> Include recipient's full name and exact address — flat/house no., building, street, area, city, and state.</span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="mt-0.5 flex-shrink-0 w-1 h-1 rounded-full bg-amber-500 inline-block" />
+                        <span><span className="font-medium">Accurate PIN Code:</span> This is the most critical piece of information for routing the package correctly.</span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="mt-0.5 flex-shrink-0 w-1 h-1 rounded-full bg-amber-500 inline-block" />
+                        <span><span className="font-medium">Active Phone Number:</span> Essential for the delivery agent to coordinate the final drop-off.</span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="mt-0.5 flex-shrink-0 w-1 h-1 rounded-full bg-amber-500 inline-block" />
+                        <span><span className="font-medium">Clear Formatting:</span> Avoid abbreviations; write the full address legibly.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
                 <form onSubmit={handleSaveAddress} className="space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input type="text" required placeholder="Full Name" value={addressForm.fullName}
+                    <input type="text" required placeholder="Full Name (e.g. Priya Sharma)" value={addressForm.fullName}
                       onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
                       className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500" />
                     <input type="tel" required placeholder="10-digit mobile number" value={addressForm.mobileNumber}
                       onChange={(e) => setAddressForm({ ...addressForm, mobileNumber: e.target.value })}
-                      pattern="[0-9]{10}" maxLength={10} title="Please enter a valid 10-digit mobile number"
+                      pattern="[6-9][0-9]{9}" maxLength={10} title="Please enter a valid 10-digit Indian mobile number starting with 6-9"
                       className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500" />
                   </div>
-                  <input type="text" required placeholder="Address Line 1" value={addressForm.addressLine1}
+                  <input type="text" required placeholder="Address Line 1 — Flat / House No., Building, Street" value={addressForm.addressLine1}
                     onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })}
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500" />
-                  <input type="text" placeholder="Address Line 2 (optional)" value={addressForm.addressLine2}
+                  <input type="text" placeholder="Address Line 2 — Area, Locality, Landmark (optional)" value={addressForm.addressLine2}
                     onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })}
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500" />
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -296,8 +351,9 @@ function Checkout() {
                     <input type="text" required placeholder="State" value={addressForm.state}
                       onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
                       className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500" />
-                    <input type="text" required placeholder="Postal Code" value={addressForm.postalCode}
+                    <input type="text" required placeholder="6-digit PIN Code" value={addressForm.postalCode}
                       onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                      pattern="[0-9]{6}" maxLength={6} title="Please enter a valid 6-digit PIN code"
                       className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500" />
                     <input type="text" placeholder="Country" value={addressForm.country}
                       onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}

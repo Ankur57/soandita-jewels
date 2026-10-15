@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import Cookies from "js-cookie";
 
 const AuthContext = createContext();
 
@@ -8,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
 
     if (token) {
       try {
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
         });
 
       } catch (err) {
-        localStorage.removeItem("token");
+        Cookies.remove("token");
       }
     }
 
@@ -28,12 +29,16 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (userData, token) => {
-    localStorage.setItem("token", token);
+    Cookies.set("token", token, {
+      expires: 7,       // 7 days — matches JWT expiry
+      secure: true,
+      sameSite: "strict",
+    });
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
+    Cookies.remove("token");
     setUser(null);
   };
 

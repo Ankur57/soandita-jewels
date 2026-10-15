@@ -1,3 +1,27 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment variables
 .env
-uploads
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads (local storage, use Cloudinary in prod)
+uploads/
+
+# Misc
+*.pem
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example

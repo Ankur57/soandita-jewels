@@ -1,9 +1,11 @@
+const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Address = require("../models/Address");
 const { processRefund } = require("../services/refundService");
 const { sendEmail } = require("../services/emailService");
+
 
 
 // Generate order number
@@ -171,13 +173,20 @@ exports.updateOrderStatus = async (req, res) => {
       "delivered",
       "cancelled",
       "returned",
+      "return_requested",
+      "return_approved",
+      "return_rejected",
+      "refunded",
     ];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    const order = await Order.findById(req.params.orderId);
+    const isObjectId = mongoose.Types.ObjectId.isValid(req.params.orderId);
+    const order = isObjectId
+      ? await Order.findById(req.params.orderId)
+      : await Order.findOne({ orderNumber: req.params.orderId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -442,12 +451,22 @@ exports.getMyOrders = async (req, res) => {
 
 exports.getOrderById = async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.orderId,
-      userId: req.user._id,
-    })
+    const { orderId } = req.params;
+    const isObjectId = mongoose.Types.ObjectId.isValid(orderId);
+
+    const filter = isObjectId
+      ? { $or: [{ _id: orderId }, { orderNumber: orderId }] }
+      : { orderNumber: orderId };
+
+    // Regular users can only access their own orders; admins can view any order
+    if (req.user && req.user.role !== "admin") {
+      filter.userId = req.user._id;
+    }
+
+    const order = await Order.findOne(filter)
+      .populate("userId", "name email mobileNumber")
       .populate("paymentId")
-      .populate("items.productId", "images");
+      .populate("items.productId", "images name sku price");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

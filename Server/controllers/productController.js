@@ -66,14 +66,7 @@ exports.getProducts = async (req, res) => {
     const search = req.query.search || "";
 
     const cacheKey = `products:${page}:${limit}:${search}`;
-    const cacheData = await redis.get(cacheKey);
     //Here we got data in redis cache and we then send this data cacheData
-    if (cacheData) {
-      console.log("Redis Cache Hit");
-      return res.json(cacheData);
-    }
-
-    console.log("Redis Cache Miss");
     const skip = (page - 1) * limit;
 
     // Build search conditions
@@ -118,7 +111,6 @@ exports.getProducts = async (req, res) => {
       totalPages: Math.ceil(total / limit),
       currentPage: page,
     }
-    await redis.set(cacheKey, response, { ex: 60 });
     res.json(response);
 
   } catch (error) {
@@ -130,20 +122,12 @@ exports.getProducts = async (req, res) => {
 // Get Single Product
 exports.getProductById = async (req, res) => {
   try {
-    const cacheKey = `product:${req.params.id}`;
-    const cached = await redis.get(cacheKey);
-    if(cached){
-      console.log("Redis Cache Hit");
-      return res.json(cached);
-    }
-    console.log("Redis Cache Miss");
     const product = await Product.findById(req.params.id)
       .populate("categoryId", "name");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    await redis.set(cacheKey, product, { ex: 120 });
 
     res.json(product);
   } catch (error) {
@@ -196,7 +180,6 @@ exports.updateProduct = async (req, res) => {
     product.images = updatedImages;
 
     await product.save();
-    await redis.del(`product:${req.params.id}`);
 
     res.json(product);
 
@@ -218,7 +201,6 @@ exports.deleteProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    await redis.del(`product:${req.params.id}`);
     res.json({ message: "Product deactivated" });
   } catch (error) {
     res.status(500).json({ message: error.message });

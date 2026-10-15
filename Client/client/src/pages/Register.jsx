@@ -49,10 +49,30 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const cleanMobile = form.mobileNumber.replace(/[\s\-\(\)\+]/g, "");
+    const formattedMobile =
+      cleanMobile.startsWith("91") && cleanMobile.length === 12
+        ? cleanMobile.slice(2)
+        : cleanMobile;
+
+    if (!/^[6-9]\d{9}$/.test(formattedMobile)) {
+      setError("Please enter a valid 10-digit mobile number (e.g. 9876543210)");
+      return;
+    }
+
+    if (!form.password || form.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await axios.post("/auth/register", form);
+      const res = await axios.post("/auth/register", {
+        ...form,
+        mobileNumber: formattedMobile,
+      });
       setSuccess(res.data.message);
       setStep(2);
       setCountdown(60);
@@ -241,21 +261,21 @@ function Register() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
                       </svg>
                     </div>
-                    <input id="register-mobile" name="mobileNumber" type="tel" value={form.mobileNumber} onChange={handleChange} required placeholder="Enter your mobile number"
+                    <input id="register-mobile" name="mobileNumber" type="tel" value={form.mobileNumber} onChange={handleChange} required placeholder="10-digit mobile number" pattern="[6-9][0-9]{9}" maxLength={10} title="10-digit mobile number starting with 6, 7, 8, or 9"
                       className="w-full pl-11 pr-4 py-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500 transition-all duration-300" />
                   </div>
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="register-password" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Password <span className="text-red-500">*</span></label>
+                  <label htmlFor="register-password" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Password (Min 8 characters) <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                       </svg>
                     </div>
-                    <input id="register-password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={handleChange} required placeholder="Create a strong password"
+                    <input id="register-password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={handleChange} required minLength={8} placeholder="At least 8 characters"
                       className="w-full pl-11 pr-12 py-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500 transition-all duration-300" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
                       {showPassword ? (

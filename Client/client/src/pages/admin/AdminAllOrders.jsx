@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 
 /* ─── Status Badge Config ─── */
@@ -39,9 +40,11 @@ const FilterTab = ({ label, active, count, onClick }) => (
 );
 
 function AdminAllOrders() {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const fetchAllOrders = async () => {
         try {
@@ -58,9 +61,21 @@ function AdminAllOrders() {
         fetchAllOrders();
     }, []);
 
-    const filteredOrders = filter === "all"
+    const statusFiltered = filter === "all"
         ? orders
         : orders.filter((o) => o.orderStatus === filter);
+
+    const filteredOrders = searchQuery.trim()
+        ? statusFiltered.filter((o) => {
+            const q = searchQuery.toLowerCase();
+            return (
+                (o.orderNumber || "").toLowerCase().includes(q) ||
+                (o.userId?.name || o.addressSnapshot?.fullName || "").toLowerCase().includes(q) ||
+                (o.userId?.email || "").toLowerCase().includes(q) ||
+                String(o.totalAmount || "").includes(q)
+            );
+        })
+        : statusFiltered;
 
     const counts = {
         all: orders.length,
@@ -88,13 +103,39 @@ function AdminAllOrders() {
             <div className="max-w-6xl mx-auto">
 
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6">
                     <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
                         All Orders
                     </h1>
                     <p className="text-gray-500 mt-1 text-sm">
                         Complete overview of all orders across every status.
                     </p>
+
+                    {/* Search Bar */}
+                    <div className="mt-4 relative max-w-lg">
+                        <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search by order number, customer name, email, or amount…"
+                            className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Filter Tabs */}
@@ -132,11 +173,12 @@ function AdminAllOrders() {
                             {filteredOrders.map((order) => (
                                 <div
                                     key={order._id}
-                                    className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-6 py-4 border-b border-gray-50 hover:bg-indigo-50/30 transition-colors duration-200 items-center"
+                                    onClick={() => navigate(`/admin/all-orders/${order._id}`)}
+                                    className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-6 py-4 border-b border-gray-50 hover:bg-indigo-50/40 active:bg-indigo-100/40 transition-colors duration-150 items-center cursor-pointer group"
                                 >
                                     {/* Order Number */}
                                     <div className="col-span-3">
-                                        <p className="font-bold text-gray-900 text-sm">{order.orderNumber}</p>
+                                        <p className="font-bold text-gray-900 text-sm group-hover:text-indigo-700 transition-colors">{order.orderNumber}</p>
                                         <p className="text-xs text-gray-400 md:hidden">
                                             {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                                         </p>
@@ -158,21 +200,26 @@ function AdminAllOrders() {
                                         <StatusBadge status={order.orderStatus} />
                                     </div>
 
-                                    {/* Date */}
-                                    <div className="col-span-2 hidden md:block">
-                                        <p className="text-sm text-gray-500">
-                                            {new Date(order.createdAt).toLocaleDateString("en-IN", {
-                                                day: "numeric",
-                                                month: "short",
-                                                year: "numeric",
-                                            })}
-                                        </p>
-                                        <p className="text-xs text-gray-400">
-                                            {new Date(order.createdAt).toLocaleTimeString("en-IN", {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
-                                        </p>
+                                    {/* Date + Chevron */}
+                                    <div className="col-span-2 hidden md:flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-500">
+                                                {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                                                    day: "numeric",
+                                                    month: "short",
+                                                    year: "numeric",
+                                                })}
+                                            </p>
+                                            <p className="text-xs text-gray-400">
+                                                {new Date(order.createdAt).toLocaleTimeString("en-IN", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </p>
+                                        </div>
+                                        <svg className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
                                     </div>
                                 </div>
                             ))}
@@ -183,6 +230,9 @@ function AdminAllOrders() {
                 {/* Count Footer */}
                 <div className="mt-4 text-sm text-gray-400 text-right">
                     Showing {filteredOrders.length} of {orders.length} orders
+                    {searchQuery.trim() && (
+                        <span className="ml-2 text-indigo-400 font-medium">for "{searchQuery}"</span>
+                    )}
                 </div>
 
             </div>

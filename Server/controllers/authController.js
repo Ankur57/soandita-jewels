@@ -30,6 +30,34 @@ exports.registerUser = async (req, res) => {
   try {
     const { name, email, password, mobileNumber } = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    // Validate mobile number (10 digits starting with 6-9)
+    if (!mobileNumber) {
+      return res.status(400).json({ message: "Mobile number is required" });
+    }
+
+    const cleanMobile = String(mobileNumber).trim().replace(/[\s\-\(\)\+]/g, "");
+    const formattedMobile =
+      cleanMobile.startsWith("91") && cleanMobile.length === 12
+        ? cleanMobile.slice(2)
+        : cleanMobile;
+
+    if (!/^[6-9]\d{9}$/.test(formattedMobile)) {
+      return res.status(400).json({
+        message: "Please enter a valid 10-digit mobile number",
+      });
+    }
+
+    // Validate password (must be at least 8 characters/digits)
+    if (!password || String(password).length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
     // Check if verified user exists
     const existingUser = await User.findOne({ email });
 
@@ -45,7 +73,7 @@ exports.registerUser = async (req, res) => {
       // Update the existing unverified user
       existingUser.name = name;
       existingUser.password = hashedPassword;
-      existingUser.mobileNumber = mobileNumber;
+      existingUser.mobileNumber = formattedMobile;
       existingUser.otp = otp;
       existingUser.otpExpiry = otpExpiry;
       await existingUser.save();
@@ -55,7 +83,7 @@ exports.registerUser = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        mobileNumber,
+        mobileNumber: formattedMobile,
         otp,
         otpExpiry,
         isVerified: false,
@@ -162,7 +190,8 @@ exports.loginUser = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log("User  not found");
+      return res.status(400).json({ message: "Account does not exist / Create new account" });
     }
 
     if (!user.isVerified) {
@@ -242,6 +271,10 @@ exports.resetPassword = async (req, res) => {
 
     if (user.otpExpiry < new Date()) {
       return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    }
+
+    if (!newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long" });
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
