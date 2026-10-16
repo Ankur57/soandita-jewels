@@ -31,8 +31,8 @@ export const AuthProvider = ({ children }) => {
   const login = (userData, token) => {
     Cookies.set("token", token, {
       expires: 7,       // 7 days — matches JWT expiry
-      secure: true,
-      sameSite: "strict",
+      secure: true,     // only sent over HTTPS
+      sameSite: "none", // required for cross-site requests in production
     });
     setUser(userData);
   };
