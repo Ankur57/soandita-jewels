@@ -73,6 +73,7 @@ function AddProduct() {
         state: { message: "Product added successfully!" },
       });
     } catch (err) {
+      console.log(err.response?.data?.message);
       setError(err.response?.data?.message || "Failed to add product");
       setSaving(false);
     }
