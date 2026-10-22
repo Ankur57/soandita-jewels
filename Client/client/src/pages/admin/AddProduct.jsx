@@ -29,8 +29,11 @@ function AddProduct() {
   const handleImageChange = (e) => {
     const files = [...e.target.files];
     setImages((prev) => [...prev, ...files]);
-    const urls = files.map((file) => URL.createObjectURL(file));
-    setPreviews((prev) => [...prev, ...urls]);
+    const newPreviews = files.map((file) => ({
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith("video/") ? "video" : "image",
+    }));
+    setPreviews((prev) => [...prev, ...newPreviews]);
     // Reset the input so the same file can be re-selected if needed
     e.target.value = null;
   };
@@ -39,7 +42,7 @@ function AddProduct() {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setPreviews((prev) => {
       // Revoke the object URL to free memory
-      URL.revokeObjectURL(prev[index]);
+      URL.revokeObjectURL(prev[index].url);
       return prev.filter((_, i) => i !== index);
     });
   };
@@ -249,16 +252,16 @@ function AddProduct() {
               </div>
             </div>
 
-            {/* Images */}
+            {/* Images & Videos */}
             <div className="mb-8">
               <label className="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                Product Images <span className="text-red-400">*</span>
+                Product Images / Videos <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/*,video/*,.heic,.heif,.avif"
                   onChange={handleImageChange}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 border-dashed rounded-xl text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all cursor-pointer"
                 />
@@ -267,18 +270,34 @@ function AddProduct() {
               {/* Previews */}
               {previews.length > 0 && (
                 <div className="flex gap-3 flex-wrap mt-3">
-                  {previews.map((url, idx) => (
+                  {previews.map((item, idx) => (
                     <div key={idx} className="relative group">
-                      <img
-                        src={url}
-                        alt="Preview"
-                        className="w-20 h-20 object-cover rounded-xl border-2 border-indigo-200 shadow-sm"
-                      />
+                      {item.type === "video" ? (
+                        <video
+                          src={item.url}
+                          muted
+                          className="w-20 h-20 object-cover rounded-xl border-2 border-purple-300 shadow-sm"
+                        />
+                      ) : (
+                        <img
+                          src={item.url}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-xl border-2 border-indigo-200 shadow-sm"
+                        />
+                      )}
+                      {/* Play icon badge for videos */}
+                      {item.type === "video" && (
+                        <span className="absolute bottom-1 left-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        title="Remove image"
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
+                        title="Remove"
                       >
                         ×
                       </button>
