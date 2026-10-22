@@ -67,7 +67,35 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/shipments", shipmentRoutes);
 
+const multer = require("multer");
+
 const PORT = process.env.PORT || 5000;
+
+// ── Global Error Handler (catches Multer + general errors) ──
+app.use((err, req, res, next) => {
+  // Multer-specific errors (file too large, wrong format, etc.)
+  if (err instanceof multer.MulterError) {
+    const messages = {
+      LIMIT_FILE_SIZE: "File is too large. Maximum allowed size is 10 MB.",
+      LIMIT_FILE_COUNT: "Too many files. Maximum 5 files allowed.",
+      LIMIT_UNEXPECTED_FILE: err.message || "Unsupported file type.",
+    };
+    return res.status(400).json({
+      message: messages[err.code] || `Upload error: ${err.message}`,
+    });
+  }
+
+  // CORS errors
+  if (err.message && err.message.includes("CORS")) {
+    return res.status(403).json({ message: err.message });
+  }
+
+  // General errors (Cloudinary failures, network issues, etc.)
+  console.error("Unhandled error:", err);
+  return res.status(500).json({
+    message: err.message || "Internal server error",
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
