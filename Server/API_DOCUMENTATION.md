@@ -439,12 +439,12 @@ All payment endpoints require authentication.
 #### Create Payment Order
 - **URL**: `POST /api/payment/create-order`
 - **Access**: Protected
-- **Description**: Create a Razorpay payment order. Initial step for payment processing.
+- **Description**: Verify cart items and stock, compute order amount, and create a Razorpay payment order. Pre-payment stock verification guarantees quantity <= available stock before opening payment gateway. Order is NOT created yet to avoid orphaned pending orders.
 - **Headers**: `Authorization: Bearer <token>`
 - **Request Body**:
   ```json
   {
-    "orderId": "order_id"
+    "addressId": "delivery_address_id"
   }
   ```
 - **Response** (200 OK):
@@ -457,34 +457,34 @@ All payment endpoints require authentication.
   }
   ```
 - **Error Responses**:
-  - 404: Order not found
-  - 400: Order already paid
+  - 400: Cart empty or insufficient stock
+  - 404: Delivery address not found
   - 401: Not authorized
   - 500: Server error
 
-#### Verify Payment
+#### Verify Payment & Create Order
 - **URL**: `POST /api/payment/verify`
 - **Access**: Protected
-- **Description**: Verify Razorpay payment signature and update order status. Automatically creates shipment on success.
+- **Description**: Cryptographically verify Razorpay HMAC-SHA256 signature. Upon successful payment verification, atomic stock deduction takes place, the Order is created with status "paid" and paymentStatus "success", the user's cart is cleared, and an order confirmation email is sent.
 - **Headers**: `Authorization: Bearer <token>`
 - **Request Body**:
   ```json
   {
     "razorpay_order_id": "order_DBJepzybf123",
     "razorpay_payment_id": "pay_EAznOHGVDv8ksn",
-    "razorpay_signature": "9ef4dffbfd84f1318f6739a13ce19f9d85851857",
-    "orderId": "order_id"
+    "razorpay_signature": "9ef4dffbfd84f1318f6739a13ce19f9d85851857"
   }
   ```
 - **Response** (200 OK):
   ```json
   {
-    "message": "Payment verified and shipment initiated"
+    "message": "Payment verified successfully",
+    "order": { ... }
   }
   ```
 - **Error Responses**:
-  - 400: Payment verification failed or amount mismatch
-  - 404: Order or payment record not found
+  - 400: Payment verification failed (invalid signature) or stock discrepancy
+  - 404: Payment record not found
   - 401: Not authorized
   - 500: Server error
 

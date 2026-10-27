@@ -54,8 +54,6 @@ const message =
   "Thank you! \u{1F60A}";
 const whatsappURL =
   `https://api.whatsapp.com/send/?phone=918175885025&text=${encodeURIComponent(message)}`;
-  console.log(message);
-console.log(encodeURIComponent(message));
   return (
     <footer className="bg-[#1a1a1a] text-white">
       {/* Main Footer Content */}

@@ -55,10 +55,26 @@ function AdminProducts() {
   const dismissTimer = useRef(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const saved = parseInt(sessionStorage.getItem("admin_products_page"), 10);
+    return !isNaN(saved) && saved > 0 ? saved : 1;
+  });
+  const [limit, setLimit] = useState(30);
   const [search, setSearch] = useState("");
   const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [deletingId, setDeletingId] = useState(null);
+
+  const pageRef = useRef(page);
+  pageRef.current = page;
+
+  // Save state on unmount
+  useEffect(() => {
+    return () => {
+      sessionStorage.setItem("admin_products_page", pageRef.current.toString());
+      sessionStorage.setItem("admin_products_scroll", window.scrollY.toString());
+    };
+  }, []);
 
   // Show success banner when navigated here with a message
   useEffect(() => {
@@ -74,15 +90,37 @@ function AdminProducts() {
   const fetchProducts = async () => {
     try {
       const res = await axios.get(
-        `/products/get?page=${page}&limit=5&search=${search}`
+        `/products/get?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
       );
-      setProducts(res.data.products);
-      setTotalPages(res.data.totalPages);
+      setProducts(res.data.products || []);
+      const fetchedTotalPages = res.data.totalPages || 1;
+      setTotalPages(fetchedTotalPages);
+      setTotalProducts(res.data.totalProducts ?? (res.data.products?.length || 0));
+
+      if (page > fetchedTotalPages && fetchedTotalPages > 0) {
+        setPage(fetchedTotalPages);
+        sessionStorage.setItem("admin_products_page", fetchedTotalPages.toString());
+      }
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      const isReturning = sessionStorage.getItem("admin_products_returning") === "true";
+      const savedScroll = sessionStorage.getItem("admin_products_scroll");
+      if (isReturning && savedScroll) {
+        setTimeout(() => {
+          window.scrollTo({ top: parseInt(savedScroll, 10), behavior: "instant" });
+          sessionStorage.removeItem("admin_products_scroll");
+          sessionStorage.removeItem("admin_products_returning");
+        }, 50);
+      }
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    sessionStorage.setItem("admin_products_page", newPage.toString());
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const toggleStatus = async (id) => {
@@ -94,7 +132,7 @@ function AdminProducts() {
 
   useEffect(() => {
     fetchProducts();
-  }, [page, search]);
+  }, [page, search, limit]);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
@@ -176,21 +214,44 @@ function AdminProducts() {
           </div>
         )}
 
-        {/* ─── Search Bar ─── */}
-        <div className="relative mb-6">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-            <SearchIcon />
+        {/* ─── Search Bar & Items Per Page Controls ─── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="relative flex-1 sm:max-w-md">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+              <SearchIcon />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by SKU, name or price..."
+              value={search}
+              onChange={(e) => {
+                setPage(1);
+                setSearch(e.target.value);
+              }}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search by SKU, name or price..."
-            value={search}
-            onChange={(e) => {
-              setPage(1);
-              setSearch(e.target.value);
-            }}
-            className="w-full sm:w-96 pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all"
-          />
+
+          <div className="flex items-center gap-2 self-end sm:self-auto text-sm text-gray-500">
+            <span className="text-xs uppercase tracking-wide font-semibold text-gray-400">Show:</span>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm cursor-pointer"
+            >
+              <option value={30}>30 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
+            {totalProducts > 0 && (
+              <span className="text-xs text-gray-500 font-medium ml-1">
+                ({products.length} of {totalProducts} items)
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ─── Products Table ─── */}
@@ -264,6 +325,11 @@ function AdminProducts() {
                     <p className="text-xs text-gray-400 lg:hidden uppercase font-semibold mb-0.5">Name</p>
                     <Link
                       to={`/admin/products/${product._id}`}
+                      onClick={() => {
+                        sessionStorage.setItem("admin_products_returning", "true");
+                        sessionStorage.setItem("admin_products_page", page.toString());
+                        sessionStorage.setItem("admin_products_scroll", window.scrollY.toString());
+                      }}
                       className="text-sm font-semibold text-gray-900 hover:text-indigo-600 transition-colors duration-200"
                     >
                       {product.name}
@@ -322,6 +388,11 @@ function AdminProducts() {
                   <div className="col-span-2 flex items-center justify-end gap-2">
                     <Link
                       to={`/admin/products/${product._id}`}
+                      onClick={() => {
+                        sessionStorage.setItem("admin_products_returning", "true");
+                        sessionStorage.setItem("admin_products_page", page.toString());
+                        sessionStorage.setItem("admin_products_scroll", window.scrollY.toString());
+                      }}
                       className="p-2 rounded-lg bg-gray-50 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200"
                       title="View"
                     >
@@ -329,6 +400,11 @@ function AdminProducts() {
                     </Link>
                     <Link
                       to={`/admin/edit-product/${product._id}`}
+                      onClick={() => {
+                        sessionStorage.setItem("admin_products_returning", "true");
+                        sessionStorage.setItem("admin_products_page", page.toString());
+                        sessionStorage.setItem("admin_products_scroll", window.scrollY.toString());
+                      }}
                       className="p-2 rounded-lg bg-gray-50 text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
                       title="Edit"
                     >
@@ -357,7 +433,7 @@ function AdminProducts() {
           <div className="flex items-center justify-center gap-2 mt-6">
             <button
               disabled={page === 1}
-              onClick={() => setPage((prev) => prev - 1)}
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
               className={`p-2 rounded-xl border transition-all duration-200 ${page === 1
                 ? "border-gray-100 text-gray-300 cursor-not-allowed"
                 : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
@@ -372,7 +448,7 @@ function AdminProducts() {
               return (
                 <button
                   key={p}
-                  onClick={() => setPage(p)}
+                  onClick={() => handlePageChange(p)}
                   className={`w-10 h-10 rounded-xl text-sm font-semibold transition-all duration-200 ${page === p
                     ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-200"
                     : "bg-white border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
@@ -385,7 +461,7 @@ function AdminProducts() {
 
             <button
               disabled={page === totalPages}
-              onClick={() => setPage((prev) => prev + 1)}
+              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
               className={`p-2 rounded-xl border transition-all duration-200 ${page === totalPages
                 ? "border-gray-100 text-gray-300 cursor-not-allowed"
                 : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../api/axios";
+import { useCart } from "../context/CartContext";
 
 import { getImageUrl } from "../utils/imageHelper";
 
 function Checkout() {
   const navigate = useNavigate();
+  const { refreshCartCount } = useCart();
 
   const [cart, setCart] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -81,15 +83,12 @@ function Checkout() {
       setPlacing(true);
       setError("");
 
-      // 1. Create Order
-      const orderRes = await axios.post("/orders", { addressId: selectedAddress });
-      const orderId = orderRes.data._id;
-
-      // 2. Create Razorpay Order
-      const paymentRes = await axios.post("/payment/create-order", { orderId });
+      // 1. Create Razorpay Order directly with addressId
+      // Backend performs strict pre-payment stock verification before creating Razorpay order
+      const paymentRes = await axios.post("/payment/create-order", { addressId: selectedAddress });
       const { razorpayOrderId, amount, key } = paymentRes.data;
 
-      // 3. Open Razorpay
+      // 2. Open Razorpay Checkout Modal
       const options = {
         key,
         amount,
@@ -100,15 +99,25 @@ function Checkout() {
         theme: { color: "#b8860b" },
         handler: async function (response) {
           try {
-            await axios.post("/payment/verify", {
+            // 3. Cryptographically verify payment and create Order in backend
+            const verifyRes = await axios.post("/payment/verify", {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              orderId,
             });
-            navigate("/orders");
+
+            if (typeof refreshCartCount === "function") {
+              refreshCartCount();
+            }
+
+            const createdOrder = verifyRes.data?.order;
+            if (createdOrder?._id) {
+              navigate(`/orders/${createdOrder._id}`);
+            } else {
+              navigate("/orders");
+            }
           } catch (err) {
-            setError("Payment verification failed. Please contact support.");
+            setError(err.response?.data?.message || "Payment verification failed. Please contact support.");
             setPlacing(false);
           }
         },

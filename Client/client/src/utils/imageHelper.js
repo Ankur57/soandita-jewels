@@ -11,8 +11,16 @@ const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL;
 export const getImageUrl = (path) => {
   if (!path) return "";
   
-  // If it's already a full URL (http or https), return it
-  if (path.startsWith("http://") || path.startsWith("https://")) {
+  // If it's already a full URL, data URL, blob, or Vite asset, return it as-is
+  if (
+    path.startsWith("http://") ||
+    path.startsWith("https://") ||
+    path.startsWith("data:") ||
+    path.startsWith("blob:") ||
+    path.startsWith("/src/") ||
+    path.startsWith("/@") ||
+    path.startsWith("/assets/")
+  ) {
     return path;
   }
   

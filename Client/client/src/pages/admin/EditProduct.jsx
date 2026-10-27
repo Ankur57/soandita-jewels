@@ -52,9 +52,20 @@ function EditProduct() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
     setSuccess("");
+
+    if (Number(form.price) <= 0) {
+      setError("Price must be greater than 0");
+      return;
+    }
+
+    if (Number(form.stock) < 0) {
+      setError("Stock cannot be less than 0");
+      return;
+    }
+
+    setSaving(true);
 
     try {
       const formData = new FormData();
@@ -108,9 +119,19 @@ function EditProduct() {
 
         {/* ─── Breadcrumb ─── */}
         <div className="flex items-center gap-2 text-sm mb-8">
-          <Link to="/admin/products" className="text-gray-400 hover:text-indigo-600 transition-colors">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/admin/products");
+              }
+            }}
+            className="text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
+          >
             Products
-          </Link>
+          </button>
           <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
@@ -183,26 +204,36 @@ function EditProduct() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
               <div>
                 <label className="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                  Price (₹)
+                  Price (₹) <span className="text-red-400">*</span>
                 </label>
                 <input
                   name="price"
                   type="number"
+                  min="0.01"
+                  step="any"
                   value={form.price}
                   onChange={handleChange}
+                  onKeyDown={(e) => {
+                    if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault();
+                  }}
                   required
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                  Stock
+                  Stock <span className="text-red-400">*</span>
                 </label>
                 <input
                   name="stock"
                   type="number"
+                  min="0"
+                  step="1"
                   value={form.stock}
                   onChange={handleChange}
+                  onKeyDown={(e) => {
+                    if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault();
+                  }}
                   required
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 
 import { getImageUrl } from "../../utils/imageHelper";
 
 function AdminProductDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
 
@@ -45,9 +46,19 @@ function AdminProductDetails() {
 
         {/* ─── Breadcrumb ─── */}
         <div className="flex items-center gap-2 text-sm mb-8">
-          <Link to="/admin/products" className="text-gray-400 hover:text-indigo-600 transition-colors">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/admin/products");
+              }
+            }}
+            className="text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
+          >
             Products
-          </Link>
+          </button>
           <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>

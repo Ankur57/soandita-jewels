@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "../api/axios";
 import promoPopular from "../assets/promo_popular.png";
@@ -13,8 +13,35 @@ import seasonTemple from "../assets/season_temple.png";
 
 import { getImageUrl } from "../utils/imageHelper";
 
+const defaultPromos = [
+  {
+    _id: "default-1",
+    image: promoPopular,
+    title: "Unveil the Essence of\nExploration Through\nExquisite Jewelry",
+    buttonText: "Discover our Popular Jewelry",
+    link: "/shop",
+  },
+  {
+    _id: "default-2",
+    image: promoWedding,
+    title: "Revel in Love's\nSplendor with Timeless\nElegance",
+    buttonText: "Discover our Wedding Jewelry",
+    link: "/shop",
+  },
+];
+
+const defaultSeasons = [
+  { _id: "default-s1", image: seasonClassicGold, label: "Classic Gold", link: "/shop" },
+  { _id: "default-s2", image: seasonStainlessSteel, label: "Stainless Steel\n& Tarnish Proof", link: "/shop" },
+  { _id: "default-s3", image: seasonEmerald, label: "Emerald", link: "/shop" },
+  { _id: "default-s4", image: seasonDemiFine, label: "Demi Fine", link: "/shop" },
+  { _id: "default-s5", image: seasonChokers, label: "Chokers", link: "/shop" },
+  { _id: "default-s6", image: seasonTemple, label: "Temple", link: "/shop" },
+];
+
 function Home() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [banners, setBanners] = useState([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -26,7 +53,30 @@ function Home() {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
+  // ── Promos State ──
+  const [promos, setPromos] = useState([]);
+  const [editPromosMode, setEditPromosMode] = useState(false);
+  const [uploadingPromo, setUploadingPromo] = useState(false);
+  const [editingPromoId, setEditingPromoId] = useState(null);
+  const [promoForm, setPromoForm] = useState({ title: "", buttonText: "", link: "" });
+  const [showAddPromo, setShowAddPromo] = useState(false);
+  const [newPromo, setNewPromo] = useState({ title: "", buttonText: "Discover Now", link: "/shop" });
+  const [newPromoFile, setNewPromoFile] = useState(null);
+
+  // ── Season Trends State ──
+  const [seasonTrends, setSeasonTrends] = useState([]);
+  const [editSeasonsMode, setEditSeasonsMode] = useState(false);
+  const [uploadingSeason, setUploadingSeason] = useState(false);
+  const [editingSeasonId, setEditingSeasonId] = useState(null);
+  const [seasonForm, setSeasonForm] = useState({ label: "", link: "" });
+  const [showAddSeason, setShowAddSeason] = useState(false);
+  const [newSeason, setNewSeason] = useState({ label: "", link: "/shop" });
+  const [newSeasonFile, setNewSeasonFile] = useState(null);
+
   const isAdmin = user && user.role === "admin";
+
+  const displayPromos = promos.length > 0 ? promos : defaultPromos;
+  const displaySeasons = seasonTrends.length > 0 ? seasonTrends : defaultSeasons;
 
   // ── Fetch banners ──
   const fetchBanners = useCallback(async () => {
@@ -60,11 +110,43 @@ function Home() {
     }
   }, []);
 
+  // ── Fetch promos ──
+  const fetchPromos = useCallback(async () => {
+    try {
+      const res = await axios.get("/promos");
+      setPromos(res.data);
+    } catch (err) {
+      console.error("Failed to load promos", err);
+    }
+  }, []);
+
+  // ── Fetch season trends ──
+  const fetchSeasonTrends = useCallback(async () => {
+    try {
+      const res = await axios.get("/season-trends");
+      setSeasonTrends(res.data);
+    } catch (err) {
+      console.error("Failed to load season trends", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchBanners();
     fetchCategories();
     fetchProducts();
-  }, [fetchBanners, fetchCategories, fetchProducts]);
+    fetchPromos();
+    fetchSeasonTrends();
+  }, [fetchBanners, fetchCategories, fetchProducts, fetchPromos, fetchSeasonTrends]);
+
+  // Open edit modal directly if URL query param exists (e.g. from Admin Dashboard)
+  useEffect(() => {
+    if (isAdmin) {
+      const edit = searchParams.get("edit");
+      if (edit === "banners") setEditMode(true);
+      if (edit === "promos") setEditPromosMode(true);
+      if (edit === "seasons") setEditSeasonsMode(true);
+    }
+  }, [searchParams, isAdmin]);
 
   // ── Auto-slide ──
   const startAutoSlide = useCallback(() => {
@@ -168,6 +250,167 @@ function Home() {
       if (current >= banners.length - 1) setCurrent(0);
     } catch (err) {
       console.error("Delete failed", err);
+    }
+  };
+
+  const [uploadingCatId, setUploadingCatId] = useState(null);
+
+  // ── Admin: Upload / update category image ──
+  const handleCategoryUpload = async (catId, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingCatId(catId);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      await axios.put(`/categories/${catId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await fetchCategories();
+    } catch (err) {
+      console.error("Failed to update category image", err);
+    } finally {
+      setUploadingCatId(null);
+      e.target.value = "";
+    }
+  };
+
+  // ── Promos Handlers ──
+  const handleReplacePromo = async (promoId, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPromo(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      await axios.put(`/promos/${promoId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await fetchPromos();
+    } catch (err) {
+      console.error("Failed to replace promo image", err);
+    } finally {
+      setUploadingPromo(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleUpdatePromoText = async (promoId) => {
+    setUploadingPromo(true);
+    try {
+      await axios.put(`/promos/${promoId}`, promoForm);
+      await fetchPromos();
+      setEditingPromoId(null);
+    } catch (err) {
+      console.error("Failed to update promo details", err);
+    } finally {
+      setUploadingPromo(false);
+    }
+  };
+
+  const handleDeletePromo = async (promoId) => {
+    if (!window.confirm("Delete this promotional banner?")) return;
+    try {
+      await axios.delete(`/promos/${promoId}`);
+      await fetchPromos();
+    } catch (err) {
+      console.error("Failed to delete promo", err);
+    }
+  };
+
+  const handleAddPromo = async (e) => {
+    e.preventDefault();
+    if (!newPromoFile) {
+      alert("Please select an image");
+      return;
+    }
+    setUploadingPromo(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", newPromoFile);
+      formData.append("title", newPromo.title);
+      formData.append("buttonText", newPromo.buttonText);
+      formData.append("link", newPromo.link);
+      await axios.post("/promos", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await fetchPromos();
+      setNewPromo({ title: "", buttonText: "Discover Now", link: "/shop" });
+      setNewPromoFile(null);
+      setShowAddPromo(false);
+    } catch (err) {
+      console.error("Failed to add promo", err);
+    } finally {
+      setUploadingPromo(false);
+    }
+  };
+
+  // ── Season Trends Handlers ──
+  const handleReplaceSeason = async (seasonId, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSeason(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      await axios.put(`/season-trends/${seasonId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await fetchSeasonTrends();
+    } catch (err) {
+      console.error("Failed to replace season trend image", err);
+    } finally {
+      setUploadingSeason(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleUpdateSeasonText = async (seasonId) => {
+    setUploadingSeason(true);
+    try {
+      await axios.put(`/season-trends/${seasonId}`, seasonForm);
+      await fetchSeasonTrends();
+      setEditingSeasonId(null);
+    } catch (err) {
+      console.error("Failed to update season trend details", err);
+    } finally {
+      setUploadingSeason(false);
+    }
+  };
+
+  const handleDeleteSeason = async (seasonId) => {
+    if (!window.confirm("Delete this season trend?")) return;
+    try {
+      await axios.delete(`/season-trends/${seasonId}`);
+      await fetchSeasonTrends();
+    } catch (err) {
+      console.error("Failed to delete season trend", err);
+    }
+  };
+
+  const handleAddSeason = async (e) => {
+    e.preventDefault();
+    if (!newSeasonFile) {
+      alert("Please select an image");
+      return;
+    }
+    setUploadingSeason(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", newSeasonFile);
+      formData.append("label", newSeason.label);
+      formData.append("link", newSeason.link);
+      await axios.post("/season-trends", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await fetchSeasonTrends();
+      setNewSeason({ label: "", link: "/shop" });
+      setNewSeasonFile(null);
+      setShowAddSeason(false);
+    } catch (err) {
+      console.error("Failed to add season trend", err);
+    } finally {
+      setUploadingSeason(false);
     }
   };
 
@@ -436,30 +679,74 @@ function Home() {
             >
               <style>{`#cat-slider::-webkit-scrollbar { display: none; }`}</style>
               {categories.map((cat) => (
-                <Link
+                <div
                   key={cat._id}
-                  to={`/shop?category=${cat.slug}`}
-                  className="group block flex-shrink-0 w-[140px] sm:w-[170px] md:w-[200px]"
+                  className="group relative flex-shrink-0 w-[140px] sm:w-[170px] md:w-[200px]"
                 >
-                  <div className="aspect-square bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 group-hover:border-yellow-200 transition-all duration-300">
-                    {cat.image ? (
-                      <img
-                        src={getImageUrl(cat.image)}
-                        alt={cat.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <Link
+                    to={`/shop?category=${cat.slug}`}
+                    className="block"
+                  >
+                    <div className="aspect-square bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 group-hover:border-yellow-300 group-hover:shadow-md transition-all duration-300 relative">
+                      {cat.image ? (
+                        <img
+                          src={getImageUrl(cat.image)}
+                          alt={cat.name}
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.parentElement.querySelector(".cat-fallback");
+                            if (fallback) fallback.classList.remove("hidden");
+                          }}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : null}
+                      <div
+                        className={`cat-fallback w-full h-full flex flex-col items-center justify-center text-gray-300 p-2 ${
+                          cat.image ? "hidden" : "flex"
+                        }`}
+                      >
+                        <svg className="w-12 h-12 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
+                        {isAdmin && (
+                          <span className="text-[10px] text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full font-medium">
+                            + Add Image
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <p className="mt-3 text-center text-sm md:text-base font-medium text-gray-700 group-hover:text-yellow-800 transition-colors">
-                    {cat.name}
-                  </p>
-                </Link>
+                    </div>
+                    <p className="mt-3 text-center text-sm md:text-base font-medium text-gray-700 group-hover:text-yellow-800 transition-colors truncate">
+                      {cat.name}
+                    </p>
+                  </Link>
+
+                  {/* Admin quick image upload button overlay */}
+                  {isAdmin && (
+                    <div className="absolute top-2 right-2 z-20">
+                      <label
+                        className="w-7 h-7 bg-white/90 hover:bg-white text-gray-700 hover:text-yellow-800 rounded-full shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-110 border border-gray-200"
+                        title="Upload / Change category image"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {uploadingCatId === cat._id ? (
+                          <div className="w-3.5 h-3.5 border-2 border-yellow-700 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*,.heic,.heif,.avif"
+                          className="hidden"
+                          disabled={uploadingCatId === cat._id}
+                          onChange={(e) => handleCategoryUpload(cat._id, e)}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -480,49 +767,43 @@ function Home() {
         </div>
       )}
       {/* ════════════ PROMOTIONAL SECTION ════════════ */}
-      <div className="px-[5%] pb-12 md:pb-16">
+      <div className="px-[5%] pb-12 md:pb-16 relative">
+        {isAdmin && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setEditPromosMode(true)}
+              className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 text-xs font-medium uppercase tracking-wider rounded-lg shadow-sm border border-gray-200 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+              Edit Promo Cards
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {/* Card 1 — Popular Jewelry */}
-          <Link
-            to="/shop"
-            className="group relative block overflow-hidden rounded-2xl h-[280px] sm:h-[320px] md:h-[360px]"
-          >
-            <img
-              src={promoPopular}
-              alt="Popular Jewelry"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-            <div className="absolute inset-0 flex flex-col items-start justify-end p-6 sm:p-8">
-              <h3 className="text-white text-xl sm:text-2xl md:text-3xl font-serif italic leading-snug mb-4">
-                Unveil the Essence of<br />Exploration Through<br />Exquisite Jewelry
-              </h3>
-              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/95 hover:bg-white text-gray-800 text-xs font-medium uppercase tracking-wider rounded-full transition-colors">
-                Discover our Popular Jewelry
-              </span>
-            </div>
-          </Link>
-
-          {/* Card 2 — Wedding Jewelry */}
-          <Link
-            to="/shop"
-            className="group relative block overflow-hidden rounded-2xl h-[280px] sm:h-[320px] md:h-[360px]"
-          >
-            <img
-              src={promoWedding}
-              alt="Wedding Jewelry"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-            <div className="absolute inset-0 flex flex-col items-start justify-end p-6 sm:p-8">
-              <h3 className="text-white text-xl sm:text-2xl md:text-3xl font-serif italic leading-snug mb-4">
-                Revel in Love's<br />Splendor with Timeless<br />Elegance
-              </h3>
-              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/95 hover:bg-white text-gray-800 text-xs font-medium uppercase tracking-wider rounded-full transition-colors">
-                Discover our Wedding Jewelry
-              </span>
-            </div>
-          </Link>
+          {displayPromos.map((promo, idx) => (
+            <Link
+              key={promo._id || idx}
+              to={promo.link || "/shop"}
+              className="group relative block overflow-hidden rounded-2xl h-[280px] sm:h-[320px] md:h-[360px]"
+            >
+              <img
+                src={getImageUrl(promo.image)}
+                alt={promo.title || "Promotional Jewelry"}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+              <div className="absolute inset-0 flex flex-col items-start justify-end p-6 sm:p-8">
+                <h3 className="text-white text-xl sm:text-2xl md:text-3xl font-serif italic leading-snug mb-4 whitespace-pre-line">
+                  {promo.title}
+                </h3>
+                <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/95 hover:bg-white text-gray-800 text-xs font-medium uppercase tracking-wider rounded-full transition-colors">
+                  {promo.buttonText || "Discover Now"}
+                </span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -622,26 +903,36 @@ function Home() {
       )}
 
       {/* ════════════ SHOP BY SEASON TRENDS ════════════ */}
-      <div className="px-[5%] pb-12 md:pb-16">
-        <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 tracking-tight text-center mb-8">
-          Shop by Season Trends
-        </h2>
+      <div className="px-[5%] pb-12 md:pb-16 relative">
+        <div className="flex items-center justify-between mb-8">
+          <div className="w-24 sm:w-36 hidden sm:block" />
+          <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 tracking-tight text-center flex-1">
+            Shop by Season Trends
+          </h2>
+          <div className="flex justify-end">
+            {isAdmin && (
+              <button
+                onClick={() => setEditSeasonsMode(true)}
+                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 text-xs font-medium uppercase tracking-wider rounded-lg shadow-sm border border-gray-200 transition-all flex items-center gap-2"
+              >
+                <svg className="w-4 h-4 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+                Edit Season Trends
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
-          {[
-            { img: seasonClassicGold, label: "Classic Gold" },
-            { img: seasonStainlessSteel, label: "Stainless Steel\n& Tarnish Proof" },
-            { img: seasonEmerald, label: "Emerald" },
-            { img: seasonDemiFine, label: "Demi Fine" },
-            { img: seasonChokers, label: "Chokers" },
-            { img: seasonTemple, label: "Temple" },
-          ].map((item, idx) => (
+          {displaySeasons.map((item, idx) => (
             <Link
-              key={idx}
-              to="/shop"
+              key={item._id || idx}
+              to={item.link || "/shop"}
               className="group relative block overflow-hidden rounded-2xl h-[180px] sm:h-[220px] md:h-[260px]"
             >
               <img
-                src={item.img}
+                src={getImageUrl(item.image)}
                 alt={item.label}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
@@ -655,6 +946,458 @@ function Home() {
           ))}
         </div>
       </div>
+
+      {/* ════════════ ADMIN PROMOS EDIT PANEL ════════════ */}
+      {isAdmin && editPromosMode && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white w-full sm:w-[680px] sm:max-h-[85vh] max-h-[90vh] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Manage Promotional Cards</h2>
+                <p className="text-xs text-gray-500">Edit titles, buttons, links, or replace card images</p>
+              </div>
+              <button
+                onClick={() => setEditPromosMode(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Cards List */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {uploadingPromo && (
+                <div className="flex items-center justify-center py-3 bg-yellow-50 rounded-xl">
+                  <div className="w-5 h-5 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                  <span className="ml-2 text-sm font-medium text-yellow-800">Processing changes…</span>
+                </div>
+              )}
+
+              {displayPromos.map((promo, idx) => (
+                <div
+                  key={promo._id || idx}
+                  className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col gap-3"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Image Thumbnail with change overlay */}
+                    <div className="relative group/thumb w-32 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
+                      <img
+                        src={getImageUrl(promo.image)}
+                        alt={promo.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <label
+                        className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-xs font-medium gap-1"
+                        title="Change image"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        </svg>
+                        Change
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleReplacePromo(promo._id, e)}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Content / Info */}
+                    <div className="flex-1 min-w-0">
+                      {editingPromoId === promo._id ? (
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[11px] font-semibold text-gray-500 uppercase">Title</label>
+                            <textarea
+                              value={promoForm.title}
+                              onChange={(e) => setPromoForm({ ...promoForm, title: e.target.value })}
+                              rows={2}
+                              className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600 bg-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[11px] font-semibold text-gray-500 uppercase">Button Text</label>
+                              <input
+                                type="text"
+                                value={promoForm.buttonText}
+                                onChange={(e) => setPromoForm({ ...promoForm, buttonText: e.target.value })}
+                                className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600 bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-semibold text-gray-500 uppercase">Link URL</label>
+                              <input
+                                type="text"
+                                value={promoForm.link}
+                                onChange={(e) => setPromoForm({ ...promoForm, link: e.target.value })}
+                                className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600 bg-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => handleUpdatePromoText(promo._id)}
+                              className="px-3 py-1 bg-yellow-700 text-white text-xs font-medium rounded-lg hover:bg-yellow-800 transition-colors"
+                            >
+                              Save Changes
+                            </button>
+                            <button
+                              onClick={() => setEditingPromoId(null)}
+                              className="px-3 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800 whitespace-pre-line mb-1">
+                            {promo.title}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span className="bg-white px-2 py-0.5 rounded border border-gray-200 font-medium text-gray-700">
+                              Button: {promo.buttonText}
+                            </span>
+                            <span className="bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-500 truncate max-w-[180px]">
+                              Link: {promo.link || "/shop"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons (when not editing) */}
+                    {editingPromoId !== promo._id && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditingPromoId(promo._id);
+                            setPromoForm({
+                              title: promo.title || "",
+                              buttonText: promo.buttonText || "",
+                              link: promo.link || "/shop",
+                            });
+                          }}
+                          className="p-2 hover:bg-yellow-50 text-yellow-700 rounded-lg transition-colors"
+                          title="Edit text"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                          </svg>
+                        </button>
+                        {promo._id && !promo._id.startsWith("default") && (
+                          <button
+                            onClick={() => handleDeletePromo(promo._id)}
+                            className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                            title="Delete card"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add New Section */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50">
+              {!showAddPromo ? (
+                <button
+                  onClick={() => setShowAddPromo(true)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-yellow-700 hover:bg-yellow-800 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Add New Promotional Card
+                </button>
+              ) : (
+                <form onSubmit={handleAddPromo} className="space-y-3 bg-white p-4 rounded-xl border border-gray-200">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wide">New Promotional Card</h4>
+                  <div>
+                    <label className="text-[11px] font-medium text-gray-600 block mb-1">Image <span className="text-red-500">*</span></label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      required
+                      onChange={(e) => setNewPromoFile(e.target.files[0])}
+                      className="text-xs text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-yellow-50 file:text-yellow-800 hover:file:bg-yellow-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-gray-600 block mb-1">Title</label>
+                    <textarea
+                      value={newPromo.title}
+                      onChange={(e) => setNewPromo({ ...newPromo, title: e.target.value })}
+                      placeholder="e.g. Unveil the Essence of Exploration..."
+                      rows={2}
+                      className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-600 block mb-1">Button Text</label>
+                      <input
+                        type="text"
+                        value={newPromo.buttonText}
+                        onChange={(e) => setNewPromo({ ...newPromo, buttonText: e.target.value })}
+                        className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-600 block mb-1">Link URL</label>
+                      <input
+                        type="text"
+                        value={newPromo.link}
+                        onChange={(e) => setNewPromo({ ...newPromo, link: e.target.value })}
+                        className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={uploadingPromo}
+                      className="flex-1 py-2 bg-yellow-700 hover:bg-yellow-800 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {uploadingPromo ? "Saving..." : "Create Card"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddPromo(false);
+                        setNewPromoFile(null);
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════ ADMIN SEASON TRENDS EDIT PANEL ════════════ */}
+      {isAdmin && editSeasonsMode && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white w-full sm:w-[680px] sm:max-h-[85vh] max-h-[90vh] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Manage Shop by Season Trends</h2>
+                <p className="text-xs text-gray-500">Edit titles, trend destinations, or replace images</p>
+              </div>
+              <button
+                onClick={() => setEditSeasonsMode(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Trends List */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {uploadingSeason && (
+                <div className="flex items-center justify-center py-3 bg-yellow-50 rounded-xl">
+                  <div className="w-5 h-5 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                  <span className="ml-2 text-sm font-medium text-yellow-800">Processing changes…</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {displaySeasons.map((item, idx) => (
+                  <div
+                    key={item._id || idx}
+                    className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3"
+                  >
+                    {/* Image Thumbnail with change overlay */}
+                    <div className="relative group/season w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.label}
+                        className="w-full h-full object-cover"
+                      />
+                      <label
+                        className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover/season:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-[10px] font-medium"
+                        title="Change image"
+                      >
+                        Change
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleReplaceSeason(item._id, e)}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Content / Info */}
+                    <div className="flex-1 min-w-0">
+                      {editingSeasonId === item._id ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            value={seasonForm.label}
+                            onChange={(e) => setSeasonForm({ ...seasonForm, label: e.target.value })}
+                            placeholder="Trend Label"
+                            className="w-full p-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-600 bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={seasonForm.link}
+                            onChange={(e) => setSeasonForm({ ...seasonForm, link: e.target.value })}
+                            placeholder="Link URL (e.g. /shop)"
+                            className="w-full p-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-600 bg-white"
+                          />
+                          <div className="flex gap-1.5 pt-0.5">
+                            <button
+                              onClick={() => handleUpdateSeasonText(item._id)}
+                              className="px-2.5 py-0.5 bg-yellow-700 text-white text-[11px] font-medium rounded hover:bg-yellow-800 transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingSeasonId(null)}
+                              className="px-2.5 py-0.5 bg-gray-200 text-gray-700 text-[11px] font-medium rounded hover:bg-gray-300 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800 whitespace-pre-line truncate">
+                            {item.label}
+                          </p>
+                          <p className="text-[11px] text-gray-400 truncate">
+                            {item.link || "/shop"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons (when not editing) */}
+                    {editingSeasonId !== item._id && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditingSeasonId(item._id);
+                            setSeasonForm({
+                              label: item.label || "",
+                              link: item.link || "/shop",
+                            });
+                          }}
+                          className="p-1.5 hover:bg-yellow-50 text-yellow-700 rounded transition-colors"
+                          title="Edit label & link"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                          </svg>
+                        </button>
+                        {item._id && !item._id.startsWith("default") && (
+                          <button
+                            onClick={() => handleDeleteSeason(item._id)}
+                            className="p-1.5 hover:bg-red-50 text-red-500 rounded transition-colors"
+                            title="Delete trend"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Add New Section */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50">
+              {!showAddSeason ? (
+                <button
+                  onClick={() => setShowAddSeason(true)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-yellow-700 hover:bg-yellow-800 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Add New Season Trend
+                </button>
+              ) : (
+                <form onSubmit={handleAddSeason} className="space-y-3 bg-white p-4 rounded-xl border border-gray-200">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wide">New Season Trend</h4>
+                  <div>
+                    <label className="text-[11px] font-medium text-gray-600 block mb-1">Image <span className="text-red-500">*</span></label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      required
+                      onChange={(e) => setNewSeasonFile(e.target.files[0])}
+                      className="text-xs text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-yellow-50 file:text-yellow-800 hover:file:bg-yellow-100"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-600 block mb-1">Label <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={newSeason.label}
+                        onChange={(e) => setNewSeason({ ...newSeason, label: e.target.value })}
+                        placeholder="e.g. Classic Gold"
+                        className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-600 block mb-1">Link URL</label>
+                      <input
+                        type="text"
+                        value={newSeason.link}
+                        onChange={(e) => setNewSeason({ ...newSeason, link: e.target.value })}
+                        className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-600"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={uploadingSeason}
+                      className="flex-1 py-2 bg-yellow-700 hover:bg-yellow-800 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {uploadingSeason ? "Saving..." : "Create Trend"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddSeason(false);
+                        setNewSeasonFile(null);
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

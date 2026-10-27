@@ -13,6 +13,8 @@ const orderRoutes = require("./routes/orderRoutes");
 const addressRoutes = require("./routes/addressRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const bannerRoutes = require("./routes/bannerRoutes");
+const promoRoutes = require("./routes/promoRoutes");
+const seasonTrendRoutes = require("./routes/seasonTrendRoutes");
 const userRoutes = require("./routes/userRoutes");
 const shipmentRoutes = require("./routes/shipmentRoutes");
 
@@ -64,6 +66,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/banners", bannerRoutes);
+app.use("/api/promos", promoRoutes);
+app.use("/api/season-trends", seasonTrendRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/shipments", shipmentRoutes);
 

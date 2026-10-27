@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import axios from "../api/axios";
 
@@ -14,19 +14,61 @@ function Shop() {
   // Filters
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [priceRange, setPriceRange] = useState([0, 500000]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
   const [availability, setAvailability] = useState("all"); // all | inStock | outOfStock
   const [sortBy, setSortBy] = useState("newest");
 
-  // Pagination
-  const [page, setPage] = useState(1);
+  // Pagination - initialized from URL or sessionStorage (if returning from product)
+  const [page, setPage] = useState(() => {
+    const urlPage = parseInt(searchParams.get("page"), 10);
+    if (!isNaN(urlPage) && urlPage > 0) return urlPage;
+    const isReturning = sessionStorage.getItem("shop_returning") === "true";
+    const saved = parseInt(sessionStorage.getItem("shop_page"), 10);
+    if (isReturning && !isNaN(saved) && saved > 0) return saved;
+    return 1;
+  });
   const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+
+  const pageRef = useRef(page);
+  pageRef.current = page;
 
   // Mobile filter toggle
   const [showFilters, setShowFilters] = useState(false);
 
   // Grid layout
   const [gridCols, setGridCols] = useState(3);
+
+  // ── Sync page with URL search params when searchParams change (e.g. Back/Forward) ──
+  useEffect(() => {
+    const urlPage = parseInt(searchParams.get("page"), 10);
+    if (!isNaN(urlPage) && urlPage > 0) {
+      if (urlPage !== page) {
+        setPage(urlPage);
+        sessionStorage.setItem("shop_page", urlPage.toString());
+      }
+    } else {
+      const isReturning = sessionStorage.getItem("shop_returning") === "true";
+      const saved = parseInt(sessionStorage.getItem("shop_page"), 10);
+      if (isReturning && !isNaN(saved) && saved > 1) {
+        setPage(saved);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", saved.toString());
+          return next;
+        }, { replace: true });
+      }
+    }
+  }, [searchParams]);
+
+  // ── Save scroll and page before unmount (e.g. clicking away) ──
+  useEffect(() => {
+    return () => {
+      sessionStorage.setItem("shop_scroll", window.scrollY.toString());
+      sessionStorage.setItem("shop_page", pageRef.current.toString());
+      sessionStorage.setItem("shop_last_url", window.location.pathname + window.location.search);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -40,77 +82,109 @@ function Shop() {
     fetchCategories();
   }, []);
 
-  // ── Read category slug from URL query param ──
+  // ── Read category slug from URL query param without resetting page on return ──
   useEffect(() => {
     const categorySlug = searchParams.get("category");
     if (categorySlug && categories.length > 0) {
       const matched = categories.find((cat) => cat.slug === categorySlug);
-      if (matched) {
+      if (matched && selectedCategory !== matched._id) {
         setSelectedCategory(matched._id);
       }
+    } else if (!categorySlug && selectedCategory !== "all") {
+      setSelectedCategory("all");
     }
-  }, [searchParams, categories]);
+  }, [searchParams, categories, selectedCategory]);
 
+  // ── Fetch products from server with all applied filters ──
   useEffect(() => {
-    const fetchProducts = async () => {
+    let isMounted = true;
+    const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await axios.get("/products/get", {
-          params: { page, limit: 12, search },
-        });
-        setProducts(res.data.products);
-        setTotalPages(res.data.totalPages);
+        const params = {
+          page,
+          limit: 24,
+          sortBy,
+        };
+        if (search.trim()) params.search = search.trim();
+        if (selectedCategory && selectedCategory !== "all") params.category = selectedCategory;
+        if (priceRange[0] > 0) params.minPrice = priceRange[0];
+        if (priceRange[1] < 500000) params.maxPrice = priceRange[1];
+        if (availability && availability !== "all") params.availability = availability;
+
+        const res = await axios.get("/products/get", { params });
+        if (isMounted) {
+          setProducts(res.data.products || []);
+          const fetchedTotalPages = res.data.totalPages || 1;
+          setTotalPages(fetchedTotalPages);
+          setTotalProducts(res.data.totalProducts ?? (res.data.products?.length || 0));
+          setError("");
+
+          if (page > fetchedTotalPages && fetchedTotalPages > 0) {
+            handlePageChange(fetchedTotalPages);
+          }
+        }
       } catch (err) {
-        setError("Failed to load products");
+        if (isMounted) setError("Failed to load products");
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          const isReturning = sessionStorage.getItem("shop_returning") === "true";
+          const savedScroll = sessionStorage.getItem("shop_scroll");
+          if (isReturning && savedScroll) {
+            setTimeout(() => {
+              window.scrollTo({
+                top: parseInt(savedScroll, 10),
+                behavior: "instant",
+              });
+              sessionStorage.removeItem("shop_scroll");
+              sessionStorage.removeItem("shop_returning");
+            }, 60);
+          }
+        }
       }
+    }, 200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
     };
-    fetchProducts();
-  }, [page, search]);
+  }, [page, search, selectedCategory, priceRange, availability, sortBy]);
 
-  // Client-side filtering for category, price, availability
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products];
+  const filteredProducts = products;
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (p) => p.categoryId?._id === selectedCategory || p.categoryId === selectedCategory
-      );
+  const handlePageChange = (newPage) => {
+    if (newPage === page || newPage < 1) return;
+    setPage(newPage);
+    sessionStorage.setItem("shop_page", newPage.toString());
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage > 1) {
+        next.set("page", newPage.toString());
+      } else {
+        next.delete("page");
+      }
+      return next;
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCategorySelect = (catId, catSlug) => {
+    setSelectedCategory(catId);
+    setPage(1);
+    sessionStorage.setItem("shop_page", "1");
+    if (catId === "all") {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("category");
+      newParams.delete("page");
+      setSearchParams(newParams);
+    } else if (catSlug) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("category", catSlug);
+      newParams.delete("page");
+      setSearchParams(newParams);
     }
-
-    filtered = filtered.filter(
-      (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
-    );
-
-    if (availability === "inStock") {
-      filtered = filtered.filter((p) => p.stock > 0);
-    } else if (availability === "outOfStock") {
-      filtered = filtered.filter((p) => p.stock === 0);
-    }
-
-    // Sorting
-    switch (sortBy) {
-      case "priceLow":
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case "priceHigh":
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case "nameAZ":
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "nameZA":
-        filtered.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      case "newest":
-      default:
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-    }
-
-    return filtered;
-  }, [products, selectedCategory, priceRange, availability, sortBy]);
+  };
 
   const formatPrice = (price) =>
     new Intl.NumberFormat("en-IN", {
@@ -125,12 +199,19 @@ function Shop() {
     setAvailability("all");
     setSortBy("newest");
     setSearch("");
+    setPage(1);
+    sessionStorage.setItem("shop_page", "1");
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("category");
+    newParams.delete("page");
+    setSearchParams(newParams);
   };
 
   const activeFilterCount = [
     selectedCategory !== "all",
     priceRange[0] > 0 || priceRange[1] < 500000,
     availability !== "all",
+    search.trim() !== "",
   ].filter(Boolean).length;
 
   return (
@@ -166,7 +247,10 @@ function Shop() {
         {/* Sort */}
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
+          onChange={(e) => {
+            setSortBy(e.target.value);
+            setPage(1);
+          }}
           className="px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500 transition-all shadow-sm cursor-pointer"
         >
           <option value="newest">Newest First</option>
@@ -220,7 +304,7 @@ function Shop() {
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Category</h3>
               <div className="space-y-1.5">
                 <button
-                  onClick={() => setSelectedCategory("all")}
+                  onClick={() => handleCategorySelect("all")}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === "all" ? "bg-yellow-50 text-yellow-800 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
                 >
                   All Categories
@@ -228,7 +312,7 @@ function Shop() {
                 {categories.map((cat) => (
                   <button
                     key={cat._id}
-                    onClick={() => setSelectedCategory(cat._id)}
+                    onClick={() => handleCategorySelect(cat._id, cat.slug)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat._id ? "bg-yellow-50 text-yellow-800 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
                   >
                     {cat.name}
@@ -249,24 +333,33 @@ function Shop() {
                 <input
                   type="range"
                   min={0}
-                  max={500000}
-                  step={1000}
+                  max={10000}
+                  step={10000}
                   value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                  onChange={(e) => {
+                    setPriceRange([priceRange[0], Number(e.target.value)]);
+                    setPage(1);
+                  }}
                   className="w-full accent-yellow-600"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number"
                     value={priceRange[0]}
-                    onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                    onChange={(e) => {
+                      setPriceRange([Number(e.target.value), priceRange[1]]);
+                      setPage(1);
+                    }}
                     placeholder="Min"
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-yellow-500"
                   />
                   <input
                     type="number"
                     value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                    onChange={(e) => {
+                      setPriceRange([priceRange[0], Number(e.target.value)]);
+                      setPage(1);
+                    }}
                     placeholder="Max"
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-yellow-500"
                   />
@@ -285,7 +378,10 @@ function Shop() {
                 ].map((opt) => (
                   <button
                     key={opt.id}
-                    onClick={() => setAvailability(opt.id)}
+                    onClick={() => {
+                      setAvailability(opt.id);
+                      setPage(1);
+                    }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${availability === opt.id ? "bg-yellow-50 text-yellow-800 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
                   >
                     <span className={`w-2 h-2 rounded-full ${opt.id === "inStock" ? "bg-green-400" : opt.id === "outOfStock" ? "bg-red-400" : "bg-gray-300"}`} />
@@ -312,7 +408,13 @@ function Shop() {
           {/* Results count */}
           <div className="flex items-center justify-between mb-5">
             <p className="text-sm text-gray-500">
-              Showing <span className="font-medium text-gray-800">{filteredProducts.length}</span> {filteredProducts.length === 1 ? "product" : "products"}
+              Showing <span className="font-medium text-gray-800">{filteredProducts.length}</span> of{" "}
+              <span className="font-medium text-gray-800">{totalProducts}</span> {totalProducts === 1 ? "product" : "products"}
+              {totalPages > 1 && (
+                <span className="text-gray-400 text-xs ml-2">
+                  (Page {page} of {totalPages})
+                </span>
+              )}
             </p>
           </div>
 
@@ -350,6 +452,12 @@ function Shop() {
                   <Link
                     to={`/product/${product._id}`}
                     key={product._id}
+                    onClick={() => {
+                      sessionStorage.setItem("shop_returning", "true");
+                      sessionStorage.setItem("shop_page", page.toString());
+                      sessionStorage.setItem("shop_scroll", window.scrollY.toString());
+                      sessionStorage.setItem("shop_last_url", window.location.pathname + window.location.search);
+                    }}
                     className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-yellow-200/50 transition-all duration-300"
                   >
                     {/* Image Container */}
@@ -412,7 +520,7 @@ function Shop() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-10">
                   <button
-                    onClick={() => setPage(Math.max(1, page - 1))}
+                    onClick={() => handlePageChange(Math.max(1, page - 1))}
                     disabled={page === 1}
                     className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
@@ -422,7 +530,7 @@ function Shop() {
                   {[...Array(totalPages)].map((_, i) => (
                     <button
                       key={i + 1}
-                      onClick={() => setPage(i + 1)}
+                      onClick={() => handlePageChange(i + 1)}
                       className={`w-10 h-10 rounded-xl text-sm font-medium transition-all ${page === i + 1
                         ? "bg-gradient-to-r from-yellow-700 to-yellow-600 text-white shadow-lg shadow-yellow-700/20"
                         : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -433,7 +541,7 @@ function Shop() {
                   ))}
 
                   <button
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
                     className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
